@@ -53,7 +53,3 @@ npm run lint          # oxlint
 ## Autenticação
 
 O frontend nunca guarda o token de acesso — ele vive em um cookie `httpOnly` setado pelo backend. Todo request usa `credentials: 'include'` (veja `services/api-client.ts`) e requests que mudam estado (POST/PATCH/DELETE) enviam automaticamente o header `x-csrf-token`, lido do cookie `focora_csrf`. No boot do app (`components/auth/auth-bootstrap.tsx`), o frontend pergunta ao backend quem é o usuário atual (`/users/me`); se não houver sessão válida, provisiona uma conta de convidado.
-
-## Deploy
-
-Veja [`../DEPLOY.md`](../DEPLOY.md) na raiz do repositório para o guia completo de deploy (Vercel/Netlify, variáveis de ambiente).
