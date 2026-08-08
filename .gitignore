@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+backend/generated/
+coverage/
+*.tsbuildinfo
+
+# Env files (secrets: DB connection string, JWT secret, OAuth client
+# secrets, SMTP app password all live in these)
+.env
+.env.*
+
+# Claude Code project config
+.claude/
+
+# Project docs / assets not meant for version control
+DEPLOY.md
+RETROSPECTIVA.md
+TASK_100DIAS.MD.md
+figma-ui.jpeg
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS/editor
+.DS_Store
+.vscode/

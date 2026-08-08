@@ -1,0 +1,224 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                 String    @id @default(uuid())
+  name               String
+  email              String?   @unique
+  password           String?
+  avatarUrl          String?
+  isGuest            Boolean   @default(false)
+  guestExpiresAt     DateTime?
+  googleId           String?   @unique
+  githubId           String?   @unique
+  role               String    @default("user")
+  blocked            Boolean   @default(false)
+  lastLoginAt        DateTime?
+  lastLoginIp        String?
+  lastLoginUserAgent String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  subjects         Subject[]
+  reviews          Review[]
+  plan             Plan?
+  settings         Settings?
+  dailyLogs        DailyLog[]
+  ownedGroups      Group[]       @relation("GroupOwner")
+  groupMemberships GroupMember[]
+
+  @@index([isGuest, guestExpiresAt])
+  @@map("users")
+}
+
+model Subject {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  color         String
+  priority      Int
+  goal          String
+  progress      Int      @default(0)
+  preferredDays String[] @default([])
+  imageUrl      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@map("subjects")
+}
+
+model Plan {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  objective    String   @default("")
+  availability Json
+  schedule     Json?
+  updatedAt    DateTime @updatedAt
+
+  @@map("plans")
+}
+
+model Review {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId    String
+  sourceTaskId String
+  intervalDays Int
+  dueDate      String
+  completed    Boolean  @default(false)
+  notified     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@map("reviews")
+}
+
+model Settings {
+  id                     String   @id @default(uuid())
+  userId                 String   @unique
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme                  String   @default("dark")
+  defaultDurationMinutes Int      @default(25)
+  defaultBreakMinutes    Int      @default(15)
+  notifyOnComplete       Boolean  @default(false)
+  dailyGoalPomodoros     Int      @default(4)
+  xp                     Int      @default(0)
+  totalPomodoros         Int      @default(0)
+  totalTasksCompleted    Int      @default(0)
+  totalReviewsCompleted  Int      @default(0)
+  awardedTaskIds         String[] @default([])
+  awardedReviewIds       String[] @default([])
+  challengeStartDate     DateTime @default(now())
+  currentStreak          Int      @default(0)
+  longestStreak          Int      @default(0)
+  lastActiveDate         String?
+  totalFocusMinutes      Int      @default(0)
+  lastPomodoroAwardAt    DateTime?
+  updatedAt              DateTime @updatedAt
+
+  @@map("settings")
+}
+
+model DailyLog {
+  id        String @id @default(uuid())
+  userId    String
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      String
+  minutes   Int    @default(0)
+  pomodoros Int    @default(0)
+
+  @@unique([userId, date])
+  @@map("daily_logs")
+}
+
+model Group {
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  icon        String
+  type        String        @default("private")
+  maxMembers  Int           @default(20)
+  inviteCode  String        @unique
+  ownerId     String
+  owner       User          @relation("GroupOwner", fields: [ownerId], references: [id])
+  members     GroupMember[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([ownerId])
+  @@map("groups")
+}
+
+model GroupMember {
+  id       String   @id @default(uuid())
+  groupId  String
+  group    Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt DateTime @default(now())
+
+  @@unique([groupId, userId])
+  @@index([userId])
+  @@map("group_members")
+}
+
+model RequestLog {
+  id           String   @id @default(uuid())
+  createdAt    DateTime @default(now())
+  method       String
+  endpoint     String
+  statusCode   Int
+  durationMs   Int
+  userId       String?
+  targetUserId String?
+  eventType    String
+  message      String?
+  ip           String?
+  userAgent    String?
+  browser      String?
+  os           String?
+
+  @@index([createdAt])
+  @@index([userId])
+  @@index([eventType])
+  @@map("request_logs")
+}
+
+model ErrorLog {
+  id              String   @id @default(uuid())
+  fingerprint     String   @unique
+  message         String
+  stack           String?
+  endpoint        String?
+  method          String?
+  userId          String?
+  severity        String   @default("error")
+  environment     String   @default("development")
+  occurrenceCount Int      @default(1)
+  payload         Json?
+  firstSeenAt     DateTime @default(now())
+  lastSeenAt      DateTime @default(now())
+
+  @@index([lastSeenAt])
+  @@map("error_logs")
+}
+
+model HealthSnapshot {
+  id           String   @id @default(uuid())
+  createdAt    DateTime @default(now())
+  dbStatus     String
+  dbLatencyMs  Int?
+  cpuPercent   Float
+  memoryRssMb  Float
+
+  @@index([createdAt])
+  @@map("health_snapshots")
+}
+
+model Alert {
+  id          String    @id @default(uuid())
+  type        String
+  severity    String    @default("warning")
+  message     String
+  triggeredAt DateTime  @default(now())
+  resolvedAt  DateTime?
+
+  @@index([type, resolvedAt])
+  @@map("alerts")
+}

@@ -1,0 +1,332 @@
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Camera, Link2, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { PriorityStars } from './priority-stars'
+import { SubjectColorBadge } from './subject-color-badge'
+import { subjectSchema, type SubjectFormValues } from './subject-form-schema'
+import { SUBJECT_COLORS } from '@/utils/subject-colors'
+import { cn } from '@/lib/utils'
+import { WEEKDAYS } from '@/types/plan'
+import { WEEKDAY_SHORT_LABELS } from '@/utils/weekday-labels'
+import { fileToResizedDataUrl } from '@/utils/image'
+import type { Subject } from '@/types/subject'
+
+interface SubjectFormDialogProps {
+  trigger: ReactNode
+  subject?: Subject
+  onSubmit: (values: SubjectFormValues) => void
+}
+
+const emptyValues: SubjectFormValues = {
+  name: '',
+  color: SUBJECT_COLORS[0],
+  priority: 3,
+  goal: '',
+  preferredDays: [],
+  imageUrl: null,
+}
+
+export function SubjectFormDialog({
+  trigger,
+  subject,
+  onSubmit,
+}: SubjectFormDialogProps) {
+  const [open, setOpen] = useState(false)
+  const [showUrlField, setShowUrlField] = useState(false)
+  const [urlInput, setUrlInput] = useState('')
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    watch,
+    formState: { errors },
+  } = useForm<SubjectFormValues>({
+    resolver: zodResolver(subjectSchema),
+    defaultValues: subject ?? emptyValues,
+  })
+
+  useEffect(() => {
+    if (open) {
+      reset(subject ?? emptyValues)
+      setShowUrlField(false)
+      setUrlInput('')
+    }
+  }, [open, subject, reset])
+
+  function handleFormSubmit(values: SubjectFormValues) {
+    onSubmit(values)
+    setOpen(false)
+  }
+
+  const watchedName = watch('name')
+  const watchedColor = watch('color')
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {subject ? 'Editar matéria' : 'Nova matéria'}
+          </DialogTitle>
+        </DialogHeader>
+
+        <form
+          onSubmit={(event) => void handleSubmit(handleFormSubmit)(event)}
+          className="flex flex-col gap-4"
+        >
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-foreground">
+              Imagem
+            </span>
+            <Controller
+              control={control}
+              name="imageUrl"
+              render={({ field }) => (
+                <div className="flex items-center gap-3">
+                  <SubjectColorBadge
+                    name={watchedName || '?'}
+                    color={watchedColor}
+                    imageUrl={field.value}
+                    size={48}
+                  />
+                  <div className="flex flex-1 flex-col gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Camera className="h-3.5 w-3.5" />
+                        {field.value ? 'Trocar' : 'Enviar arquivo'}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => setShowUrlField((value) => !value)}
+                      >
+                        <Link2 className="h-3.5 w-3.5" />
+                        Link da internet
+                      </Button>
+                      {field.value && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1.5 text-muted-foreground hover:text-destructive"
+                          onClick={() => field.onChange(null)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Remover
+                        </Button>
+                      )}
+                    </div>
+
+                    {showUrlField && (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="url"
+                          placeholder="https://exemplo.com/imagem.jpg"
+                          value={urlInput}
+                          onChange={(event) => setUrlInput(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key !== 'Enter') return
+                            event.preventDefault()
+                            if (!urlInput.trim()) return
+                            field.onChange(urlInput.trim())
+                          }}
+                          className="h-8 text-xs"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={!urlInput.trim()}
+                          onClick={() => field.onChange(urlInput.trim())}
+                        >
+                          Usar
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0]
+                      event.target.value = ''
+                      if (!file) return
+                      if (!file.type.startsWith('image/')) {
+                        toast.error('Selecione um arquivo de imagem.')
+                        return
+                      }
+                      try {
+                        const dataUrl = await fileToResizedDataUrl(file)
+                        field.onChange(dataUrl)
+                      } catch (error) {
+                        toast.error(
+                          error instanceof Error
+                            ? error.message
+                            : 'Não foi possível carregar a imagem.',
+                        )
+                      }
+                    }}
+                  />
+                </div>
+              )}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label
+              className="text-sm font-medium text-foreground"
+              htmlFor="subject-name"
+            >
+              Nome
+            </label>
+            <Input
+              id="subject-name"
+              placeholder="Ex: JavaScript"
+              {...register('name')}
+            />
+            {errors.name && (
+              <p className="text-xs text-destructive">
+                {errors.name.message}
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-foreground">Cor</span>
+            <Controller
+              control={control}
+              name="color"
+              render={({ field }) => (
+                <div className="flex flex-wrap gap-2">
+                  {SUBJECT_COLORS.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      aria-label={`Cor ${color}`}
+                      onClick={() => field.onChange(color)}
+                      className={cn(
+                        'h-7 w-7 rounded-full ring-offset-2 ring-offset-background transition-shadow',
+                        field.value === color && 'ring-2 ring-foreground',
+                      )}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+              )}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-foreground">
+              Prioridade
+            </span>
+            <Controller
+              control={control}
+              name="priority"
+              render={({ field }) => (
+                <PriorityStars
+                  value={field.value}
+                  onChange={field.onChange}
+                  size={22}
+                />
+              )}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-foreground">
+              Dias da semana
+            </span>
+            <p className="text-xs text-muted-foreground">
+              Escolha os dias em que quer estudar essa matéria. Nenhum dia
+              selecionado = qualquer dia.
+            </p>
+            <Controller
+              control={control}
+              name="preferredDays"
+              render={({ field }) => (
+                <div className="flex flex-wrap gap-1.5">
+                  {WEEKDAYS.map((day) => {
+                    const selected = field.value.includes(day)
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() =>
+                          field.onChange(
+                            selected
+                              ? field.value.filter((item) => item !== day)
+                              : [...field.value, day],
+                          )
+                        }
+                        className={cn(
+                          'rounded-md border px-2.5 py-1.5 text-xs font-medium',
+                          selected
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border text-foreground hover:bg-accent',
+                        )}
+                      >
+                        {WEEKDAY_SHORT_LABELS[day]}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label
+              className="text-sm font-medium text-foreground"
+              htmlFor="subject-goal"
+            >
+              Objetivo
+            </label>
+            <Input
+              id="subject-goal"
+              placeholder="Ex: Ser aprovado no concurso X"
+              {...register('goal')}
+            />
+            {errors.goal && (
+              <p className="text-xs text-destructive">
+                {errors.goal.message}
+              </p>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button type="submit">
+              {subject ? 'Salvar' : 'Adicionar'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
