@@ -64,7 +64,3 @@ npx prisma migrate dev      # cria/aplica uma migration
 ## Autenticação
 
 O token de acesso vive em um cookie `httpOnly` (`focora_token`), nunca em `localStorage` — protege contra roubo de token via XSS. Toda rota que muda estado exige o header `x-csrf-token` batendo com o cookie `focora_csrf` (padrão double-submit). Contas de convidado (guest) são criadas automaticamente no primeiro acesso e expiram após um período de teste.
-
-## Deploy
-
-Veja [`../DEPLOY.md`](../DEPLOY.md) na raiz do repositório para o guia completo de deploy (Railway, variáveis de ambiente, migrations em produção).
