@@ -4,6 +4,8 @@ import { authApi } from '@/services/auth-api'
 import { usersApi } from '@/services/users-api'
 import { syncUserData } from '@/hooks/use-sync-user-data'
 import { ApiError } from '@/services/api-client'
+import { isSessionPersisted } from '@/utils/verify-session'
+import { useCookieNoticeStore } from '@/stores/cookie-notice-store'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -18,6 +20,7 @@ type BootstrapStatus = 'loading' | 'ready' | 'error'
  * cookie the client can't read. */
 export function AuthBootstrap({ children }: { children: ReactNode }) {
   const setUser = useAuthStore((state) => state.setUser)
+  const showCookieNotice = useCookieNoticeStore((state) => state.show)
   const [status, setStatus] = useState<BootstrapStatus>('loading')
 
   async function bootstrap() {
@@ -30,6 +33,18 @@ export function AuthBootstrap({ children }: { children: ReactNode }) {
         if (!(error instanceof ApiError) || error.status !== 401) throw error
         const session = await authApi.guest()
         setUser(session.user)
+
+        // Check right away, on literally the first visit, rather than
+        // waiting for someone to try logging in and hit a confusing dead
+        // end. If the guest cookie the server just set didn't stick, no
+        // cookie-dependent call is going to work — skip syncUserData
+        // (it would just 401 across the board) and tell the person why,
+        // instead of quietly rendering an empty dashboard.
+        if (!(await isSessionPersisted())) {
+          showCookieNotice()
+          setStatus('ready')
+          return
+        }
       }
       await syncUserData()
       setStatus('ready')
