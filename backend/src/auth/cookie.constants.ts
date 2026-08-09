@@ -35,10 +35,11 @@ export function authCookieOptions() {
 export function csrfCookieOptions() {
   return {
     httpOnly: false, // must be JS-readable — the frontend echoes it back as a header
-    sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
+    sameSite: 'lax', // CSRF cookie is NOT third-party, doesn't need SameSite=None
     secure: isProd,
-    partitioned: isProd,
+    partitioned: false, // CSRF token is same-site, not third-party — no partitioning needed
     path: '/',
     maxAge: AUTH_COOKIE_MAX_AGE_MS,
   };
 }
+
