@@ -15,18 +15,25 @@ const isProd = process.env.NODE_ENV === 'production';
 // Secure — that requires HTTPS, which local dev over plain http doesn't
 // have. Lax works fine for localhost-to-localhost (SameSite compares
 // registrable domain, not port).
-// SameSite=None cookies are cross-site by definition, so browsers now treat
-// them as third-party storage subject to partitioning (Firefox Total Cookie
-// Protection, Chrome CHIPS). Without the `Partitioned` attribute, browsers
-// warn now and will start dropping the cookie outright — it still needs to
-// be readable/sendable on the single site that set it (our own frontend),
-// just isolated from other sites, which `partitioned` gives us for free.
+//
+// Deliberately NOT using `Partitioned` (CHIPS), even though browsers warn
+// about it: a `Partitioned` cookie's storage is keyed to whichever
+// top-level site was active when it was set. The OAuth login flow sets
+// this cookie mid-redirect while the browser is briefly ON the API's own
+// domain (a first-party moment) before landing back on the frontend — so
+// the cookie gets partitioned under the API's own site, and is then
+// invisible to the frontend's later same cross-site fetches (partition key
+// mismatch: set under the API's site, looked up under the frontend's
+// site). That silently logged OAuth users back out as guests. Regular
+// email/password/guest logins never hit this because the cookie is always
+// both set AND read from the same cross-site fetch context. SameSite=None
+// alone is sufficient for our case (a legitimate cross-site API cookie,
+// not third-party tracking storage), so it's fine to skip CHIPS here.
 export function authCookieOptions() {
   return {
     httpOnly: true,
     sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
     secure: isProd,
-    partitioned: isProd,
     path: '/',
     maxAge: AUTH_COOKIE_MAX_AGE_MS,
   };
@@ -37,7 +44,6 @@ export function csrfCookieOptions() {
     httpOnly: false, // must be JS-readable — the frontend echoes it back as a header
     sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
     secure: isProd,
-    partitioned: isProd,
     path: '/',
     maxAge: AUTH_COOKIE_MAX_AGE_MS,
   };
