@@ -15,11 +15,18 @@ const isProd = process.env.NODE_ENV === 'production';
 // Secure — that requires HTTPS, which local dev over plain http doesn't
 // have. Lax works fine for localhost-to-localhost (SameSite compares
 // registrable domain, not port).
+// SameSite=None cookies are cross-site by definition, so browsers now treat
+// them as third-party storage subject to partitioning (Firefox Total Cookie
+// Protection, Chrome CHIPS). Without the `Partitioned` attribute, browsers
+// warn now and will start dropping the cookie outright — it still needs to
+// be readable/sendable on the single site that set it (our own frontend),
+// just isolated from other sites, which `partitioned` gives us for free.
 export function authCookieOptions() {
   return {
     httpOnly: true,
     sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
     secure: isProd,
+    partitioned: isProd,
     path: '/',
     maxAge: AUTH_COOKIE_MAX_AGE_MS,
   };
@@ -30,6 +37,7 @@ export function csrfCookieOptions() {
     httpOnly: false, // must be JS-readable — the frontend echoes it back as a header
     sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
     secure: isProd,
+    partitioned: isProd,
     path: '/',
     maxAge: AUTH_COOKIE_MAX_AGE_MS,
   };
