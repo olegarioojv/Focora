@@ -23,6 +23,17 @@ export function csrfMiddleware(
     res.cookie(CSRF_COOKIE, token, csrfCookieOptions());
   }
 
+  // The frontend and API can live on different registrable domains in
+  // production (e.g. a Vercel frontend calling a Railway API) — in that
+  // setup `document.cookie` on the frontend's own page can NEVER see this
+  // cookie, since it was set on a response from a different site. That
+  // makes it unreadable by the very JS that's supposed to echo it back as
+  // the double-submit header, regardless of SameSite/Partitioned. Echoing
+  // the token on every response as a header (readable cross-origin once
+  // exposed via CORS `exposedHeaders`) gives the frontend a channel that
+  // actually works no matter how the two are hosted.
+  res.setHeader(CSRF_HEADER, token);
+
   if (SAFE_METHODS.has(req.method) || EXEMPT_PATHS.has(req.path)) {
     next();
     return;

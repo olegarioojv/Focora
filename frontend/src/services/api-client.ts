@@ -3,7 +3,6 @@ import { useGuestTrialStore } from '@/stores/guest-trial-store'
 
 export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
 
-const CSRF_COOKIE = 'focora_csrf'
 const CSRF_HEADER = 'x-csrf-token'
 const SAFE_METHODS = new Set(['GET', 'HEAD'])
 
@@ -16,27 +15,34 @@ export class ApiError extends Error {
   }
 }
 
-function readCsrfCookie(): string | undefined {
-  if (typeof document === 'undefined') return undefined
-  const match = document.cookie
-    .split('; ')
-    .find((row) => row.startsWith(`${CSRF_COOKIE}=`))
-  return match?.slice(CSRF_COOKIE.length + 1)
-}
+// The backend and frontend can live on different registrable domains in
+// production (e.g. Vercel + Railway) — `document.cookie` on this page can
+// never see a cookie set by a response from a different site, so reading
+// the CSRF cookie directly doesn't work there (it silently returns
+// nothing, and every mutating request gets rejected as a forged request).
+// The backend instead echoes the current token back as a response header
+// on every request (see csrf.middleware.ts); cache that here and send it
+// back as the next mutating request's header — this works identically
+// whether frontend and API share a domain or not.
+let cachedCsrfToken: string | undefined
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const method = options.method ?? 'GET'
-  const csrfToken = SAFE_METHODS.has(method) ? undefined : readCsrfCookie()
 
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...(csrfToken ? { [CSRF_HEADER]: csrfToken } : {}),
+      ...(!SAFE_METHODS.has(method) && cachedCsrfToken
+        ? { [CSRF_HEADER]: cachedCsrfToken }
+        : {}),
       ...options.headers,
     },
   })
+
+  const freshToken = response.headers.get(CSRF_HEADER)
+  if (freshToken) cachedCsrfToken = freshToken
 
   if (!response.ok) {
     const body = await response.json().catch(() => null)
