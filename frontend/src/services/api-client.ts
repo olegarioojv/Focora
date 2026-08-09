@@ -5,6 +5,7 @@ export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
 
 const CSRF_HEADER = 'x-csrf-token'
 const SAFE_METHODS = new Set(['GET', 'HEAD'])
+const RELOAD_GUARD_KEY = 'focora-session-reload-guard'
 
 export class ApiError extends Error {
   status: number
@@ -66,7 +67,18 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       // simplest reliable recovery from a dead/blocked session mid-use.
       useAuthStore.getState().clearSession()
       if (typeof window !== 'undefined') {
-        window.location.href = '/app'
+        // Guard against reload loops: browsers that refuse to persist the
+        // cross-site auth cookie at all (Safari/WebKit blocks third-party
+        // cookies by default) will hit this exact 401 again immediately
+        // after the reload, forever. One reload per tab session is a
+        // reasonable one-time recovery attempt for a genuinely stale
+        // cookie; a second one this session means reloading isn't the
+        // fix, and looping would just make the page unusable.
+        const alreadyReloaded = sessionStorage.getItem(RELOAD_GUARD_KEY)
+        if (!alreadyReloaded) {
+          sessionStorage.setItem(RELOAD_GUARD_KEY, '1')
+          window.location.href = '/app'
+        }
       }
     }
 
