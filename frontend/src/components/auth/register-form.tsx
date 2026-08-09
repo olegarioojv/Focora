@@ -8,12 +8,15 @@ import { authApi } from '@/services/auth-api'
 import { ApiError } from '@/services/api-client'
 import { useAuthStore } from '@/stores/auth-store'
 import { useGuestTrialStore } from '@/stores/guest-trial-store'
+import { useCookieNoticeStore } from '@/stores/cookie-notice-store'
 import { syncUserData } from '@/hooks/use-sync-user-data'
+import { isSessionPersisted } from '@/utils/verify-session'
 import { registerSchema, type RegisterFormValues } from '@/pages/Auth/auth-form-schema'
 
 export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
   const setUser = useAuthStore((state) => state.setUser)
   const setExpired = useGuestTrialStore((state) => state.setExpired)
+  const showCookieNotice = useCookieNoticeStore((state) => state.show)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const {
@@ -28,6 +31,11 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
       const { user } = await authApi.register(values)
       setUser(user)
       setExpired(false)
+      if (!(await isSessionPersisted())) {
+        onSuccess()
+        showCookieNotice()
+        return
+      }
       await syncUserData()
       onSuccess()
     } catch (error) {

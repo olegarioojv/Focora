@@ -3,14 +3,17 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
 import { useGuestTrialStore } from '@/stores/guest-trial-store'
+import { useCookieNoticeStore } from '@/stores/cookie-notice-store'
 import { authApi } from '@/services/auth-api'
 import { syncUserData } from '@/hooks/use-sync-user-data'
+import { isSessionPersisted } from '@/utils/verify-session'
 
 export function OAuthCallbackPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const setUser = useAuthStore((state) => state.setUser)
   const setExpired = useGuestTrialStore((state) => state.setExpired)
+  const showCookieNotice = useCookieNoticeStore((state) => state.show)
   const hasRun = useRef(false)
 
   useEffect(() => {
@@ -35,14 +38,21 @@ export function OAuthCallbackPage() {
       const { user } = await authApi.exchangeOAuthCode(code)
       setUser(user)
       setExpired(false)
+
+      if (!(await isSessionPersisted())) {
+        return 'cookie-blocked' as const
+      }
+
       await syncUserData()
+      return 'ok' as const
     }
 
     completeOAuthLogin()
-      .then(() => {
+      .then((result) => {
         const returnPath = sessionStorage.getItem('oauth-return-path') ?? '/app'
         sessionStorage.removeItem('oauth-return-path')
         navigate(returnPath, { replace: true })
+        if (result === 'cookie-blocked') showCookieNotice()
       })
       .catch((error: unknown) => {
         const message =
@@ -52,7 +62,7 @@ export function OAuthCallbackPage() {
         toast.error(message)
         navigate('/app', { replace: true })
       })
-  }, [searchParams, setUser, setExpired, navigate])
+  }, [searchParams, setUser, setExpired, showCookieNotice, navigate])
 
   return (
     <div className="flex min-h-svh items-center justify-center bg-background text-sm text-muted-foreground">
