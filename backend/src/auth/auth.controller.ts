@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Logger,
   Post,
   Req,
   Res,
@@ -29,6 +30,8 @@ interface OAuthProfile {
 
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
@@ -162,6 +165,11 @@ export class AuthController {
       const code = this.oauthExchange.create(accessToken, user);
       res.redirect(`${frontendUrl}/oauth-callback?code=${code}`);
     } catch (error) {
+      // This used to fail silently — the frontend got a user-facing
+      // message via the redirect, but nothing was ever recorded here,
+      // making failures in this specific path undebuggable from the
+      // server side.
+      this.logger.error(`OAuth ${provider} callback failed`, error);
       const message =
         error instanceof Error ? error.message : 'Não foi possível entrar';
       res.redirect(

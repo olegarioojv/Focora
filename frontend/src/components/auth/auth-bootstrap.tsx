@@ -47,6 +47,15 @@ export function AuthBootstrap({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
+    // /oauth-callback handles its own auth (exchanging the one-time code
+    // for the real session cookie) — provisioning a guest here first would
+    // both be wasted work and, worse, a race: the guest cookie this would
+    // set could still be in flight when the callback page's exchange call
+    // lands, and either one could "win" depending on timing.
+    if (window.location.pathname === '/oauth-callback') {
+      setStatus('ready')
+      return
+    }
     bootstrap()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
