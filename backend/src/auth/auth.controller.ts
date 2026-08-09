@@ -4,6 +4,7 @@ import {
   Post,
   Req,
   Res,
+  UnauthorizedException,
   UseGuards,
   Body,
 } from '@nestjs/common';
@@ -13,8 +14,10 @@ import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { OAuthExchangeDto } from './dto/oauth-exchange.dto';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { GithubAuthGuard } from './guards/github-auth.guard';
+import { OAuthExchangeService } from './oauth-exchange.service';
 import { ACCESS_TOKEN_COOKIE, authCookieOptions } from './cookie.constants';
 
 interface OAuthProfile {
@@ -29,6 +32,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
+    private readonly oauthExchange: OAuthExchangeService,
   ) {}
 
   // Auth endpoints get a much tighter limit than the API default — these
@@ -84,6 +88,30 @@ export class AuthController {
     return { ok: true };
   }
 
+  // Exchanges the one-time code from the OAuth callback redirect for the
+  // real session cookie. Deliberately a separate step instead of setting
+  // the cookie directly during the callback redirect: that redirect is a
+  // top-level navigation landing briefly on the API's own domain, a
+  // different browser storage context than the cross-site fetches the
+  // frontend normally uses — browsers with strict cross-site cookie
+  // partitioning (Firefox Total Cookie Protection, in particular) silently
+  // hide a cookie set in one context from reads in the other. Setting it
+  // here, in response to a normal fetch from the frontend, uses the exact
+  // same context every other session cookie already works in.
+  @Throttle({ default: { ttl: 60_000, limit: 20 } })
+  @Post('oauth/exchange')
+  exchangeOAuthCode(
+    @Body() dto: OAuthExchangeDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = this.oauthExchange.consume(dto.code);
+    if (!result) {
+      throw new UnauthorizedException('Código inválido ou expirado');
+    }
+    res.cookie(ACCESS_TOKEN_COOKIE, result.accessToken, authCookieOptions());
+    return { user: result.user };
+  }
+
   @Get('google')
   @UseGuards(GoogleAuthGuard)
   googleAuth() {
@@ -124,14 +152,15 @@ export class AuthController {
     const guestToken = req.cookies?.[ACCESS_TOKEN_COOKIE] as string | undefined;
 
     try {
-      const { accessToken } = await this.authService.loginWithOAuth(
+      const { accessToken, user } = await this.authService.loginWithOAuth(
         provider,
         req.user as OAuthProfile,
         guestToken,
         this.sessionMeta(req),
       );
-      res.cookie(ACCESS_TOKEN_COOKIE, accessToken, authCookieOptions());
-      res.redirect(`${frontendUrl}/oauth-callback`);
+      // Not setting the cookie here on purpose — see exchangeOAuthCode().
+      const code = this.oauthExchange.create(accessToken, user);
+      res.redirect(`${frontendUrl}/oauth-callback?code=${code}`);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Não foi possível entrar';

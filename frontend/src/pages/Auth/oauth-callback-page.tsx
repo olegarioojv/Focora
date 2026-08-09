@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
 import { useGuestTrialStore } from '@/stores/guest-trial-store'
-import { usersApi } from '@/services/users-api'
+import { authApi } from '@/services/auth-api'
 import { syncUserData } from '@/hooks/use-sync-user-data'
 
 export function OAuthCallbackPage() {
@@ -21,9 +21,18 @@ export function OAuthCallbackPage() {
       const error = searchParams.get('error')
       if (error) throw new Error(error)
 
-      // The backend already set the httpOnly auth cookie before redirecting
-      // here — just ask who we are now.
-      const user = await usersApi.me()
+      const code = searchParams.get('code')
+      if (!code) throw new Error('missing code')
+
+      // Exchanging the one-time code via a normal fetch (instead of the
+      // backend setting the cookie directly during the redirect) matters:
+      // this fetch is a cross-site request from this page to the API,
+      // exactly the context every other session cookie already works in.
+      // Setting it during the redirect itself would set it in a
+      // first-party context on the API's own domain instead, which strict
+      // cross-site cookie partitioning (Firefox Total Cookie Protection)
+      // then hides from this page entirely.
+      const { user } = await authApi.exchangeOAuthCode(code)
       setUser(user)
       setExpired(false)
       await syncUserData()
@@ -36,9 +45,10 @@ export function OAuthCallbackPage() {
         navigate(returnPath, { replace: true })
       })
       .catch((error: unknown) => {
-        const message = error instanceof Error && error.message
-          ? error.message
-          : 'Não foi possível concluir o login'
+        const message =
+          error instanceof Error && error.message && error.message !== 'missing code'
+            ? error.message
+            : 'Não foi possível concluir o login'
         toast.error(message)
         navigate('/app', { replace: true })
       })

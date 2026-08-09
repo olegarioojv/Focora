@@ -12,4 +12,6 @@ export const authApi = {
   login: (data: { email: string; password: string }) =>
     apiPost<AuthResponse>('/auth/login', data),
   logout: () => apiPost<{ ok: true }>('/auth/logout'),
+  exchangeOAuthCode: (code: string) =>
+    apiPost<AuthResponse>('/auth/oauth/exchange', { code }),
 }

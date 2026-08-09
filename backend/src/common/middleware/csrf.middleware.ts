@@ -10,7 +10,16 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 // Session-creation routes can't carry the CSRF header yet — nothing has
 // set the cookie for this browser before the first request arrives.
-const EXEMPT_PATHS = new Set(['/auth/guest', '/auth/register', '/auth/login']);
+const EXEMPT_PATHS = new Set([
+  '/auth/guest',
+  '/auth/register',
+  '/auth/login',
+  // The OAuth exchange establishes a brand-new session from a one-time
+  // code (single-use, 60s TTL) — same trust boundary as guest/login/
+  // register, and the frontend that just landed on /oauth-callback has no
+  // guaranteed prior CSRF cookie to echo back yet.
+  '/auth/oauth/exchange',
+]);
 
 export function csrfMiddleware(
   req: Request,
