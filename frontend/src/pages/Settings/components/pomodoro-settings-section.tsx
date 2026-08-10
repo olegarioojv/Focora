@@ -10,6 +10,7 @@ import {
 } from '@/utils/notifications'
 
 const BREAK_PRESETS = [5, 10, 15, 20] as const
+const DAILY_GOAL_PRESETS = [2, 4, 6, 8] as const
 
 export function PomodoroSettingsSection() {
   const defaultDurationMinutes = usePomodoroSettingsStore(
@@ -17,6 +18,9 @@ export function PomodoroSettingsSection() {
   )
   const defaultBreakMinutes = usePomodoroSettingsStore(
     (state) => state.defaultBreakMinutes,
+  )
+  const dailyGoalPomodoros = usePomodoroSettingsStore(
+    (state) => state.dailyGoalPomodoros,
   )
   const notifyOnComplete = usePomodoroSettingsStore(
     (state) => state.notifyOnComplete,
@@ -26,6 +30,9 @@ export function PomodoroSettingsSection() {
   )
   const setDefaultBreakMinutes = usePomodoroSettingsStore(
     (state) => state.setDefaultBreakMinutes,
+  )
+  const setDailyGoalPomodoros = usePomodoroSettingsStore(
+    (state) => state.setDailyGoalPomodoros,
   )
   const setNotifyOnComplete = usePomodoroSettingsStore(
     (state) => state.setNotifyOnComplete,
@@ -84,6 +91,28 @@ export function PomodoroSettingsSection() {
               onClick={() => setDefaultBreakMinutes(minutes)}
             >
               {minutes} min
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-5">
+        <span className="text-sm font-medium text-foreground">
+          Meta de pomodoros por dia
+        </span>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Usado para calcular o progresso em "Metas do dia" no painel.
+        </p>
+        <div className="mt-2 flex items-center gap-2">
+          {DAILY_GOAL_PRESETS.map((count) => (
+            <Button
+              key={count}
+              type="button"
+              size="sm"
+              variant={dailyGoalPomodoros === count ? 'default' : 'outline'}
+              onClick={() => setDailyGoalPomodoros(count)}
+            >
+              {count}
             </Button>
           ))}
         </div>

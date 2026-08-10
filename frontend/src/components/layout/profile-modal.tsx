@@ -41,6 +41,7 @@ import { useAuthModalStore } from '@/stores/auth-modal-store'
 
 const TOTAL_DAYS = 100
 const BREAK_PRESETS = [5, 10, 15, 20] as const
+const DAILY_GOAL_PRESETS = [2, 4, 6, 8] as const
 const SOUND_STAGE_ROWS: { stage: PomodoroSoundStage; label: string }[] = [
   { stage: 'pomodoroFocusStartSound', label: 'Início do foco' },
   { stage: 'pomodoroFocusEndSound', label: 'Fim do foco' },
@@ -82,6 +83,12 @@ export function ProfileModal() {
   )
   const setDefaultBreakMinutes = usePomodoroSettingsStore(
     (state) => state.setDefaultBreakMinutes,
+  )
+  const dailyGoalPomodoros = usePomodoroSettingsStore(
+    (state) => state.dailyGoalPomodoros,
+  )
+  const setDailyGoalPomodoros = usePomodoroSettingsStore(
+    (state) => state.setDailyGoalPomodoros,
   )
   const soundsEnabled = usePomodoroSettingsStore(
     (state) => state.pomodoroSoundsEnabled,
@@ -379,6 +386,29 @@ export function ProfileModal() {
                     className="h-7 w-20 text-xs"
                   />
                 )}
+              </div>
+            </div>
+
+            <div className="mt-3">
+              <p className="text-[11px] text-muted-foreground">
+                Meta diária de pomodoros
+              </p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                {DAILY_GOAL_PRESETS.map((count) => (
+                  <button
+                    key={count}
+                    type="button"
+                    onClick={() => setDailyGoalPomodoros(count)}
+                    className={cn(
+                      'rounded-md border px-2.5 py-1 text-xs font-medium',
+                      dailyGoalPomodoros === count
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border text-foreground hover:bg-accent',
+                    )}
+                  >
+                    {count}
+                  </button>
+                ))}
               </div>
             </div>
 

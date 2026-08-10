@@ -5,11 +5,6 @@ import { usePomodoroSettingsStore, type PomodoroSoundStage } from './pomodoro-se
 import { sendNotification } from '@/utils/notifications'
 import { playPomodoroSound } from '@/utils/pomodoro-sounds'
 
-// Small delay between two sounds that fire at the same instant (focus
-// ending and break starting) so they read as two distinct cues instead of
-// overlapping into a single muddy chord.
-const STAGE_TRANSITION_GAP_MS = 400
-
 function playStageSound(stage: PomodoroSoundStage) {
   const settings = usePomodoroSettingsStore.getState()
   if (!settings.pomodoroSoundsEnabled) return
@@ -135,15 +130,16 @@ export const usePomodoroStore = create<PomodoroState>()(
               )
             }
             playStageSound('pomodoroFocusEndSound')
-            setTimeout(
-              () => playStageSound('pomodoroBreakStartSound'),
-              STAGE_TRANSITION_GAP_MS,
-            )
             return {
               mode: 'break',
               secondsLeft: state.breakMinutes * 60,
-              endAt: Date.now() + state.breakMinutes * 60 * 1000,
-              isRunning: true,
+              // Stops here instead of auto-continuing into the break — the
+              // "início do descanso" sound now fires from start() when the
+              // user actually clicks Iniciar, same as every other stage
+              // change; playing it here too, before the break has really
+              // begun, would be premature.
+              endAt: null,
+              isRunning: false,
               cyclesCompleted: isNewDay ? 1 : state.cyclesCompleted + 1,
               totalFocusMinutesToday: isNewDay
                 ? state.durationMinutes

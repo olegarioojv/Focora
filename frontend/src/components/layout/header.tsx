@@ -1,3 +1,4 @@
+import { AnnouncementsModal } from './announcements-modal'
 import { GamificationModal } from './gamification-modal'
 import { ProfileModal } from './profile-modal'
 import { ThemeToggleButton } from './theme-toggle-button'
@@ -8,6 +9,7 @@ export function Header() {
       <div className="flex items-center gap-3">
         <ThemeToggleButton />
         <GamificationModal />
+        <AnnouncementsModal />
         <ProfileModal />
       </div>
     </header>
