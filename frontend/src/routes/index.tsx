@@ -16,6 +16,7 @@ import { GroupDetailPage } from '@/pages/Groups/group-detail-page'
 import { GroupInvitePage } from '@/pages/Groups/group-invite-page'
 import { AdminDashboardPage } from '@/pages/Admin/admin-dashboard-page'
 import { AdminUsersPage } from '@/pages/Admin/admin-users-page'
+import { AdminOnlineUsersPage } from '@/pages/Admin/admin-online-users-page'
 import { AdminUserDetailPage } from '@/pages/Admin/admin-user-detail-page'
 import { AdminGroupsPage } from '@/pages/Admin/admin-groups-page'
 import { AdminLogsPage } from '@/pages/Admin/admin-logs-page'
@@ -58,6 +59,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <AdminDashboardPage /> },
           { path: 'users', element: <AdminUsersPage /> },
+          { path: 'online', element: <AdminOnlineUsersPage /> },
           { path: 'users/:id', element: <AdminUserDetailPage /> },
           { path: 'groups', element: <AdminGroupsPage /> },
           { path: 'monitoring', element: <AdminMonitoringPage /> },

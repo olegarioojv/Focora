@@ -23,6 +23,17 @@ export interface AdminUserListItem {
   isGuest: boolean
   role: 'user' | 'admin'
   blocked: boolean
+  isOnline: boolean
+}
+
+export interface AdminOnlineUser {
+  id: string
+  name: string
+  email: string | null
+  avatarUrl: string | null
+  role: 'user' | 'admin'
+  isGuest: boolean
+  lastSeenAt: string
 }
 
 export interface AdminUserListResponse {
@@ -206,6 +217,8 @@ export const adminApi = {
     apiGet<AdminUserListResponse>(`/admin/users${toQueryString(params)}`),
 
   getUser: (id: string) => apiGet<AdminUserDetail>(`/admin/users/${id}`),
+
+  listOnlineUsers: () => apiGet<AdminOnlineUser[]>('/admin/users/online'),
 
   blockUser: (id: string) =>
     apiPatch<AdminUserListItem>(`/admin/users/${id}/block`),

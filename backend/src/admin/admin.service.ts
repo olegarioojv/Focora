@@ -11,6 +11,10 @@ import { DatabaseHealthService } from '../common/services/database-health.servic
 
 const PAGE_SIZE = 20;
 const LOG_PAGE_SIZE = 50;
+// A user counts as "online" if they've made a request in this window — there's
+// no session/heartbeat tracking, so RequestLog activity is the closest proxy
+// (already used the same way by getRealtime()'s activeUsers count).
+const ONLINE_WINDOW_MS = 5 * 60 * 1000;
 
 interface ListUsersParams {
   search?: string;
@@ -87,7 +91,8 @@ export class AdminService {
       totalHoursStudied:
         Math.round(((settingsAgg._sum.totalFocusMinutes ?? 0) / 60) * 10) / 10,
       totalDaysCompleted,
-      averageStreak: Math.round((settingsAgg._avg.currentStreak ?? 0) * 10) / 10,
+      averageStreak:
+        Math.round((settingsAgg._avg.currentStreak ?? 0) * 10) / 10,
       api: {
         status: 'online',
         averageResponseMs: Math.round(responseAgg._avg.durationMs ?? 0),
@@ -141,7 +146,62 @@ export class AdminService {
       this.prisma.user.count({ where }),
     ]);
 
-    return { items, total, page, pageSize: PAGE_SIZE };
+    const onlineIds = await this.getOnlineUserIds(items.map((item) => item.id));
+    return {
+      items: items.map((item) => ({
+        ...item,
+        isOnline: onlineIds.has(item.id),
+      })),
+      total,
+      page,
+      pageSize: PAGE_SIZE,
+    };
+  }
+
+  private async getOnlineUserIds(userIds: string[]) {
+    if (userIds.length === 0) return new Set<string>();
+    const since = new Date(Date.now() - ONLINE_WINDOW_MS);
+    const logs = await this.prisma.requestLog.findMany({
+      where: { userId: { in: userIds }, createdAt: { gte: since } },
+      select: { userId: true },
+      distinct: ['userId'],
+    });
+    return new Set(logs.map((log) => log.userId as string));
+  }
+
+  // Full profile of who's online right now, not just a count — used by the
+  // dedicated "Usuários online" admin tab.
+  async listOnlineUsers() {
+    const since = new Date(Date.now() - ONLINE_WINDOW_MS);
+    const logs = await this.prisma.requestLog.findMany({
+      where: { userId: { not: null }, createdAt: { gte: since } },
+      select: { userId: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+      distinct: ['userId'],
+    });
+    if (logs.length === 0) return [];
+
+    const lastSeenByUserId = new Map(
+      logs.map((log) => [log.userId as string, log.createdAt]),
+    );
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: logs.map((log) => log.userId as string) } },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatarUrl: true,
+        role: true,
+        isGuest: true,
+      },
+    });
+
+    return users
+      .map((user) => ({
+        ...user,
+        lastSeenAt: lastSeenByUserId.get(user.id) as Date,
+      }))
+      .sort((a, b) => b.lastSeenAt.getTime() - a.lastSeenAt.getTime());
   }
 
   async getUserDetail(id: string) {
@@ -424,7 +484,9 @@ export class AdminService {
         select: { userId: true },
         distinct: ['userId'],
       }),
-      this.prisma.requestLog.count({ where: { createdAt: { gte: tenSecAgo } } }),
+      this.prisma.requestLog.count({
+        where: { createdAt: { gte: tenSecAgo } },
+      }),
       this.databaseHealth.check(),
     ]);
 
@@ -447,7 +509,8 @@ export class AdminService {
     const resolved = alerts
       .filter((alert) => alert.resolvedAt)
       .sort(
-        (a, b) => (b.resolvedAt as Date).getTime() - (a.resolvedAt as Date).getTime(),
+        (a, b) =>
+          (b.resolvedAt as Date).getTime() - (a.resolvedAt as Date).getTime(),
       );
     return [...open, ...resolved];
   }

@@ -16,6 +16,8 @@ import { AdminPagination } from './components/admin-pagination'
 import { cn } from '@/lib/utils'
 import { adminApi, type AdminUserListItem } from '@/services/admin-api'
 
+const ONLINE_COUNT_POLL_MS = 15_000
+
 function accountTypeLabel(user: AdminUserListItem) {
   if (user.role === 'admin') return 'Admin'
   if (user.isGuest) return 'Convidado'
@@ -30,7 +32,22 @@ export function AdminUsersPage() {
   const [page, setPage] = useState(1)
   const [items, setItems] = useState<AdminUserListItem[]>([])
   const [total, setTotal] = useState(0)
+  const [onlineCount, setOnlineCount] = useState(0)
   const pageSize = 20
+
+  useEffect(() => {
+    function poll() {
+      adminApi
+        .listOnlineUsers()
+        .then((users) => setOnlineCount(users.length))
+        .catch(() => {
+          // Polling — a transient failure just skips this tick.
+        })
+    }
+    poll()
+    const interval = setInterval(poll, ONLINE_COUNT_POLL_MS)
+    return () => clearInterval(interval)
+  }, [])
 
   // Debounced so typing a name/e-mail doesn't fire a request per
   // keystroke — same pattern already used by the Groups public search.
@@ -64,7 +81,18 @@ export function AdminUsersPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h2 className="text-xl font-semibold text-foreground">Usuários</h2>
-        <p className="text-sm text-muted-foreground">{total} usuários cadastrados</p>
+        <p className="text-sm text-muted-foreground">
+          {total} usuários cadastrados
+          {onlineCount > 0 && (
+            <>
+              {' • '}
+              <span className="inline-flex items-center gap-1 text-success">
+                <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                {onlineCount} online agora
+              </span>
+            </>
+          )}
+        </p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -123,12 +151,20 @@ export function AdminUsersPage() {
                   onClick={() => navigate(`/admin/users/${user.id}`)}
                   className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-muted/50"
                 >
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage src={user.avatarUrl ?? undefined} alt={user.name} />
-                    <AvatarFallback className="bg-primary/15 text-xs font-medium text-primary">
-                      {user.name.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="relative shrink-0">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src={user.avatarUrl ?? undefined} alt={user.name} />
+                      <AvatarFallback className="bg-primary/15 text-xs font-medium text-primary">
+                        {user.name.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    {user.isOnline && (
+                      <span
+                        title="Online agora"
+                        className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-success"
+                      />
+                    )}
+                  </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-foreground">
                       {user.name}

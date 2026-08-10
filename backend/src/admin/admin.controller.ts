@@ -44,6 +44,13 @@ export class AdminController {
     });
   }
 
+  // Must be registered before 'users/:id' — otherwise Nest would try to
+  // parse "online" as the :id UUID param and 400 before this ever matches.
+  @Get('users/online')
+  listOnlineUsers() {
+    return this.adminService.listOnlineUsers();
+  }
+
   @Get('users/:id')
   getUser(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.adminService.getUserDetail(id);
@@ -153,7 +160,9 @@ export class AdminController {
 
   @Get('health/requests-timeline')
   getRequestsTimeline(@Query('minutes') minutes?: string) {
-    return this.adminService.getRequestsTimeline(minutes ? Number(minutes) : 60);
+    return this.adminService.getRequestsTimeline(
+      minutes ? Number(minutes) : 60,
+    );
   }
 
   @Get('health/realtime')

@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Users,
   Users2,
+  Wifi,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
@@ -18,13 +19,15 @@ import { resetSyncedStores } from '@/hooks/use-sync-user-data'
 import { adminApi } from '@/services/admin-api'
 
 const ALERTS_POLL_MS = 30_000
+const ONLINE_POLL_MS = 15_000
 
 const NAV_ITEMS = [
   { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { path: '/admin/users', label: 'Usuários', icon: Users },
+  { path: '/admin/online', label: 'Online agora', icon: Wifi, badge: 'online' as const },
   { path: '/admin/groups', label: 'Grupos', icon: Users2 },
   { path: '/admin/monitoring', label: 'Monitoramento', icon: Radio },
-  { path: '/admin/alerts', label: 'Alertas', icon: Bell, badge: true },
+  { path: '/admin/alerts', label: 'Alertas', icon: Bell, badge: 'alerts' as const },
   { path: '/admin/logs', label: 'Logs', icon: ListTree },
   { path: '/admin/errors', label: 'Erros', icon: AlertTriangle },
 ]
@@ -34,6 +37,7 @@ export function AdminLayout() {
   const name = useAuthStore((state) => state.user?.name ?? 'Admin')
   const clearSession = useAuthStore((state) => state.clearSession)
   const [openAlerts, setOpenAlerts] = useState(0)
+  const [onlineCount, setOnlineCount] = useState(0)
 
   useEffect(() => {
     function poll() {
@@ -48,6 +52,22 @@ export function AdminLayout() {
     const interval = setInterval(poll, ALERTS_POLL_MS)
     return () => clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    function poll() {
+      adminApi
+        .listOnlineUsers()
+        .then((users) => setOnlineCount(users.length))
+        .catch(() => {
+          // Polling — a transient failure just skips this tick.
+        })
+    }
+    poll()
+    const interval = setInterval(poll, ONLINE_POLL_MS)
+    return () => clearInterval(interval)
+  }, [])
+
+  const badgeValues = { alerts: openAlerts, online: onlineCount }
 
   function handleLogout() {
     clearSession()
@@ -84,9 +104,16 @@ export function AdminLayout() {
             >
               <item.icon className="h-4.5 w-4.5" />
               {item.label}
-              {item.badge && openAlerts > 0 && (
-                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-medium text-destructive-foreground">
-                  {openAlerts}
+              {item.badge && badgeValues[item.badge] > 0 && (
+                <span
+                  className={cn(
+                    'ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-medium',
+                    item.badge === 'alerts'
+                      ? 'bg-destructive text-destructive-foreground'
+                      : 'bg-success text-success-foreground',
+                  )}
+                >
+                  {badgeValues[item.badge]}
                 </span>
               )}
             </NavLink>

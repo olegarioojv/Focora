@@ -5,6 +5,12 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { EmptyState } from '@/components/ui/empty-state'
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -13,7 +19,11 @@ import {
 } from '@/components/ui/select'
 import { AdminPagination } from './components/admin-pagination'
 import { cn } from '@/lib/utils'
-import { adminApi, type AdminGroupListItem } from '@/services/admin-api'
+import {
+  adminApi,
+  type AdminGroupDetail,
+  type AdminGroupListItem,
+} from '@/services/admin-api'
 import { ApiError } from '@/services/api-client'
 
 export function AdminGroupsPage() {
@@ -23,6 +33,26 @@ export function AdminGroupsPage() {
   const [items, setItems] = useState<AdminGroupListItem[]>([])
   const [total, setTotal] = useState(0)
   const pageSize = 20
+
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
+  const [groupDetail, setGroupDetail] = useState<AdminGroupDetail | null>(null)
+  const [loadingDetail, setLoadingDetail] = useState(false)
+
+  useEffect(() => {
+    if (!selectedGroupId) {
+      setGroupDetail(null)
+      return
+    }
+    setLoadingDetail(true)
+    adminApi
+      .getGroup(selectedGroupId)
+      .then(setGroupDetail)
+      .catch(() => {
+        toast.error('Não foi possível carregar os detalhes do grupo')
+        setSelectedGroupId(null)
+      })
+      .finally(() => setLoadingDetail(false))
+  }, [selectedGroupId])
 
   // Debounced so typing a name doesn't fire a request per keystroke — same
   // pattern already used by Usuários/Logs.
@@ -114,45 +144,50 @@ export function AdminGroupsPage() {
         ) : (
           <ul className="divide-y divide-border">
             {items.map((group) => (
-              <li
-                key={group.id}
-                className="flex items-center gap-3 px-5 py-3"
-              >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-lg">
-                  {group.icon}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">
-                    {group.name}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    Dono: {group.ownerName}
-                  </p>
+              <li key={group.id}>
+                <div className="flex items-center gap-3 px-5 py-3">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedGroupId(group.id)}
+                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-lg">
+                      {group.icon}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {group.name}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        Dono: {group.ownerName}
+                      </p>
+                    </div>
+                  </button>
+                  <span className="hidden shrink-0 text-xs text-muted-foreground sm:block">
+                    Criado: {new Date(group.createdAt).toLocaleDateString('pt-BR')}
+                  </span>
+                  <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                    {group.memberCount}/{group.maxMembers} membros
+                  </span>
+                  <span
+                    className={cn(
+                      'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium',
+                      group.type === 'public'
+                        ? 'bg-success/15 text-success'
+                        : 'bg-muted text-muted-foreground',
+                    )}
+                  >
+                    {group.type === 'public' ? 'Público' : 'Privado'}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`Excluir grupo ${group.name}`}
+                    onClick={() => handleDelete(group)}
+                    className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
-                <span className="hidden shrink-0 text-xs text-muted-foreground sm:block">
-                  Criado: {new Date(group.createdAt).toLocaleDateString('pt-BR')}
-                </span>
-                <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                  {group.memberCount}/{group.maxMembers} membros
-                </span>
-                <span
-                  className={cn(
-                    'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium',
-                    group.type === 'public'
-                      ? 'bg-success/15 text-success'
-                      : 'bg-muted text-muted-foreground',
-                  )}
-                >
-                  {group.type === 'public' ? 'Público' : 'Privado'}
-                </span>
-                <button
-                  type="button"
-                  aria-label={`Excluir grupo ${group.name}`}
-                  onClick={() => handleDelete(group)}
-                  className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
               </li>
             ))}
           </ul>
@@ -160,6 +195,84 @@ export function AdminGroupsPage() {
       </Card>
 
       <AdminPagination page={page} totalPages={totalPages} onPageChange={setPage} />
+
+      <Dialog
+        open={selectedGroupId !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedGroupId(null)
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {groupDetail && (
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-base">
+                  {groupDetail.icon}
+                </span>
+              )}
+              {groupDetail?.name ?? 'Grupo'}
+            </DialogTitle>
+          </DialogHeader>
+
+          {loadingDetail && !groupDetail ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              Carregando...
+            </p>
+          ) : groupDetail ? (
+            <div className="flex flex-col gap-4">
+              {groupDetail.description && (
+                <p className="text-sm text-muted-foreground">
+                  {groupDetail.description}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <span className="rounded-full bg-muted px-2 py-0.5">
+                  Dono: {groupDetail.owner.name}
+                </span>
+                <span className="rounded-full bg-muted px-2 py-0.5">
+                  {groupDetail.members.length}/{groupDetail.maxMembers} membros
+                </span>
+                <span className="rounded-full bg-muted px-2 py-0.5">
+                  {groupDetail.type === 'public' ? 'Público' : 'Privado'}
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-foreground">
+                  Membros
+                </span>
+                <ul className="max-h-64 divide-y divide-border overflow-y-auto rounded-lg border border-border">
+                  {groupDetail.members.map((member) => (
+                    <li
+                      key={member.userId}
+                      className="flex items-center justify-between gap-2 px-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm text-foreground">
+                          {member.name}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {member.email ?? 'sem e-mail'}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        {member.isOwner && (
+                          <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-primary">
+                            Dono
+                          </span>
+                        )}
+                        <span className="text-[11px] text-muted-foreground">
+                          {new Date(member.joinedAt).toLocaleDateString('pt-BR')}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
