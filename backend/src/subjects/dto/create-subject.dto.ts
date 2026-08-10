@@ -53,4 +53,9 @@ export class CreateSubjectDto {
   @IsString()
   @MaxLength(500_000)
   imageUrl?: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  totalLessons?: number | null;
 }

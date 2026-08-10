@@ -7,5 +7,7 @@ export const subjectsApi = {
   create: (input: SubjectInput) => apiPost<Subject>('/subjects', input),
   update: (id: string, input: SubjectInput) =>
     apiPatch<Subject>(`/subjects/${id}`, input),
+  setCompletedLessons: (id: string, completedLessons: number) =>
+    apiPatch<Subject>(`/subjects/${id}`, { completedLessons }),
   remove: (id: string) => apiDelete<void>(`/subjects/${id}`),
 }

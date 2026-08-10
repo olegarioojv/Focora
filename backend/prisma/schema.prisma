@@ -4,8 +4,8 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
   moduleFormat = "cjs"
 }
 
@@ -44,18 +44,19 @@ model User {
 }
 
 model Subject {
-  id            String   @id @default(uuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name          String
-  color         String
-  priority      Int
-  goal          String
-  progress      Int      @default(0)
-  preferredDays String[] @default([])
-  imageUrl      String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name             String
+  color            String
+  priority         Int
+  goal             String
+  totalLessons     Int?
+  completedLessons Int      @default(0)
+  preferredDays    String[] @default([])
+  imageUrl         String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@index([userId])
   @@map("subjects")
@@ -90,33 +91,33 @@ model Review {
 }
 
 model Settings {
-  id                     String   @id @default(uuid())
-  userId                 String   @unique
-  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  theme                  String   @default("dark")
-  defaultDurationMinutes Int      @default(25)
-  defaultBreakMinutes    Int      @default(15)
-  notifyOnComplete       Boolean  @default(false)
-  dailyGoalPomodoros     Int      @default(4)
-  xp                     Int      @default(0)
-  totalPomodoros         Int      @default(0)
-  totalTasksCompleted    Int      @default(0)
-  totalReviewsCompleted  Int      @default(0)
-  awardedTaskIds         String[] @default([])
-  awardedReviewIds       String[] @default([])
-  challengeStartDate     DateTime @default(now())
-  currentStreak          Int      @default(0)
-  longestStreak          Int      @default(0)
-  lastActiveDate         String?
-  totalFocusMinutes      Int      @default(0)
-  lastPomodoroAwardAt    DateTime?
-  pomodoroSoundsEnabled  Boolean  @default(true)
-  pomodoroSoundVolume    Int      @default(70)
-  pomodoroFocusStartSound String  @default("sino")
-  pomodoroFocusEndSound  String   @default("classico")
-  pomodoroBreakStartSound String  @default("suave")
-  pomodoroBreakEndSound  String   @default("digital")
-  updatedAt              DateTime @updatedAt
+  id                      String    @id @default(uuid())
+  userId                  String    @unique
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme                   String    @default("dark")
+  defaultDurationMinutes  Int       @default(25)
+  defaultBreakMinutes     Int       @default(15)
+  notifyOnComplete        Boolean   @default(false)
+  dailyGoalPomodoros      Int       @default(4)
+  xp                      Int       @default(0)
+  totalPomodoros          Int       @default(0)
+  totalTasksCompleted     Int       @default(0)
+  totalReviewsCompleted   Int       @default(0)
+  awardedTaskIds          String[]  @default([])
+  awardedReviewIds        String[]  @default([])
+  challengeStartDate      DateTime  @default(now())
+  currentStreak           Int       @default(0)
+  longestStreak           Int       @default(0)
+  lastActiveDate          String?
+  totalFocusMinutes       Int       @default(0)
+  lastPomodoroAwardAt     DateTime?
+  pomodoroSoundsEnabled   Boolean   @default(true)
+  pomodoroSoundVolume     Int       @default(70)
+  pomodoroFocusStartSound String    @default("sino")
+  pomodoroFocusEndSound   String    @default("classico")
+  pomodoroBreakStartSound String    @default("suave")
+  pomodoroBreakEndSound   String    @default("digital")
+  updatedAt               DateTime  @updatedAt
 
   @@map("settings")
 }
@@ -206,12 +207,12 @@ model ErrorLog {
 }
 
 model HealthSnapshot {
-  id           String   @id @default(uuid())
-  createdAt    DateTime @default(now())
-  dbStatus     String
-  dbLatencyMs  Int?
-  cpuPercent   Float
-  memoryRssMb  Float
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  dbStatus    String
+  dbLatencyMs Int?
+  cpuPercent  Float
+  memoryRssMb Float
 
   @@index([createdAt])
   @@map("health_snapshots")

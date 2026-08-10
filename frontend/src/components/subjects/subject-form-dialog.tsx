@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Camera, Link2, Trash2 } from 'lucide-react'
+import { Camera, Link2, Minus, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils'
 import { WEEKDAYS } from '@/types/plan'
 import { WEEKDAY_SHORT_LABELS } from '@/utils/weekday-labels'
 import { fileToResizedDataUrl } from '@/utils/image'
+import { useSubjectsStore } from '@/stores/subjects-store'
 import type { Subject } from '@/types/subject'
 
 interface SubjectFormDialogProps {
@@ -36,6 +37,7 @@ const emptyValues: SubjectFormValues = {
   goal: '',
   preferredDays: [],
   imageUrl: null,
+  totalLessons: null,
 }
 
 export function SubjectFormDialog({
@@ -48,6 +50,13 @@ export function SubjectFormDialog({
   const [urlInput, setUrlInput] = useState('')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const setCompletedLessons = useSubjectsStore(
+    (state) => state.setCompletedLessons,
+  )
+  const liveCompletedLessons = useSubjectsStore((state) =>
+    subject ? state.subjects.find((item) => item.id === subject.id)?.completedLessons : undefined,
+  )
 
   const {
     register,
@@ -76,6 +85,7 @@ export function SubjectFormDialog({
 
   const watchedName = watch('name')
   const watchedColor = watch('color')
+  const watchedTotalLessons = watch('totalLessons')
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -319,6 +329,78 @@ export function SubjectFormDialog({
               </p>
             )}
           </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label
+              className="text-sm font-medium text-foreground"
+              htmlFor="subject-total-lessons"
+            >
+              Total de aulas (opcional)
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Informe quantas aulas essa matéria tem para calcular o progresso
+              automaticamente.
+            </p>
+            <Controller
+              control={control}
+              name="totalLessons"
+              render={({ field }) => (
+                <Input
+                  id="subject-total-lessons"
+                  type="number"
+                  min={1}
+                  placeholder="Ex: 20"
+                  value={field.value ?? ''}
+                  onChange={(event) => {
+                    const raw = event.target.value
+                    field.onChange(raw === '' ? null : Number(raw))
+                  }}
+                />
+              )}
+            />
+            {errors.totalLessons && (
+              <p className="text-xs text-destructive">
+                {errors.totalLessons.message}
+              </p>
+            )}
+          </div>
+
+          {subject && watchedTotalLessons && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-foreground">
+                Aulas concluídas
+              </span>
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={(liveCompletedLessons ?? 0) <= 0}
+                  onClick={() =>
+                    setCompletedLessons(subject.id, (liveCompletedLessons ?? 0) - 1)
+                  }
+                >
+                  <Minus className="h-3.5 w-3.5" />
+                </Button>
+                <span className="min-w-[4rem] text-center text-sm text-foreground">
+                  {liveCompletedLessons ?? 0} / {watchedTotalLessons}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={(liveCompletedLessons ?? 0) >= watchedTotalLessons}
+                  onClick={() =>
+                    setCompletedLessons(subject.id, (liveCompletedLessons ?? 0) + 1)
+                  }
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          )}
 
           <DialogFooter>
             <Button type="submit">

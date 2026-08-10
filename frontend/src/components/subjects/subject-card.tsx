@@ -1,4 +1,4 @@
-import { Pencil, Trash2 } from 'lucide-react'
+import { Minus, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
@@ -6,6 +6,8 @@ import { SubjectColorBadge } from './subject-color-badge'
 import { PriorityStars } from './priority-stars'
 import { SubjectFormDialog } from './subject-form-dialog'
 import { WEEKDAY_SHORT_LABELS } from '@/utils/weekday-labels'
+import { getSubjectProgress } from '@/utils/subject-progress'
+import { useSubjectsStore } from '@/stores/subjects-store'
 import type { Subject } from '@/types/subject'
 import type { SubjectFormValues } from './subject-form-schema'
 
@@ -16,6 +18,11 @@ interface SubjectCardProps {
 }
 
 export function SubjectCard({ subject, onUpdate, onRemove }: SubjectCardProps) {
+  const setCompletedLessons = useSubjectsStore(
+    (state) => state.setCompletedLessons,
+  )
+  const progress = getSubjectProgress(subject)
+
   return (
     <Card className="border border-border p-5">
       <div className="flex items-start justify-between gap-3">
@@ -56,12 +63,44 @@ export function SubjectCard({ subject, onUpdate, onRemove }: SubjectCardProps) {
         </div>
       </div>
 
-      <div className="mt-4 flex items-center gap-3">
-        <Progress value={subject.progress} className="h-2 flex-1" />
-        <span className="text-sm font-medium text-foreground">
-          {subject.progress}%
-        </span>
-      </div>
+      {progress !== null && (
+        <div className="mt-4 flex items-center gap-3">
+          <Progress value={progress} className="h-2 flex-1" />
+          <span className="text-sm font-medium text-foreground">
+            {progress}%
+          </span>
+        </div>
+      )}
+
+      {subject.totalLessons != null && (
+        <div className="mt-2 flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            disabled={subject.completedLessons <= 0}
+            onClick={() =>
+              setCompletedLessons(subject.id, subject.completedLessons - 1)
+            }
+          >
+            <Minus className="h-3.5 w-3.5" />
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            {subject.completedLessons} / {subject.totalLessons} aulas
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            disabled={subject.completedLessons >= subject.totalLessons}
+            onClick={() =>
+              setCompletedLessons(subject.id, subject.completedLessons + 1)
+            }
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
 
       <div className="mt-3">
         <PriorityStars value={subject.priority} />

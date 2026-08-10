@@ -10,6 +10,11 @@ export const subjectSchema = z.object({
   goal: z.string().min(3, 'Descreva o objetivo'),
   preferredDays: z.array(z.enum(weekdayValues)),
   imageUrl: z.string().nullable(),
+  totalLessons: z
+    .number()
+    .int()
+    .min(1, 'Informe pelo menos 1 aula')
+    .nullable(),
 })
 
 export type SubjectFormValues = z.infer<typeof subjectSchema>

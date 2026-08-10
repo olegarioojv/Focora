@@ -15,6 +15,7 @@ export interface SubjectInput {
   goal: string
   preferredDays: Weekday[]
   imageUrl: string | null
+  totalLessons: number | null
 }
 
 interface SubjectsState {
@@ -23,6 +24,7 @@ interface SubjectsState {
   addSubject: (input: SubjectInput) => void
   updateSubject: (id: string, input: SubjectInput) => void
   removeSubject: (id: string) => void
+  setCompletedLessons: (id: string, completedLessons: number) => void
 }
 
 function reportError(error: unknown, fallback: string) {
@@ -35,7 +37,10 @@ export const useSubjectsStore = create<SubjectsState>()((set, get) => ({
   addSubject: (input) => {
     const tempId = crypto.randomUUID()
     set((state) => ({
-      subjects: [...state.subjects, { id: tempId, progress: 0, ...input }],
+      subjects: [
+        ...state.subjects,
+        { id: tempId, completedLessons: 0, ...input },
+      ],
     }))
 
     subjectsApi
@@ -93,6 +98,31 @@ export const useSubjectsStore = create<SubjectsState>()((set, get) => ({
       .catch((error) => {
         set({ subjects: previous })
         reportError(error, 'Não foi possível remover a matéria')
+      })
+  },
+  setCompletedLessons: (id, completedLessons) => {
+    const previous = get().subjects
+    const target = previous.find((subject) => subject.id === id)
+    if (!target) return
+    // Clamp locally too so a fast double-click can't visually overshoot
+    // the total before the server's own clamp comes back.
+    const clamped = target.totalLessons
+      ? Math.min(Math.max(completedLessons, 0), target.totalLessons)
+      : Math.max(completedLessons, 0)
+
+    set((state) => ({
+      subjects: state.subjects.map((subject) =>
+        subject.id === id
+          ? { ...subject, completedLessons: clamped }
+          : subject,
+      ),
+    }))
+
+    subjectsApi
+      .setCompletedLessons(id, clamped)
+      .catch((error) => {
+        set({ subjects: previous })
+        reportError(error, 'Não foi possível salvar o progresso')
       })
   },
 }))

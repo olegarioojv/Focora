@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { SubjectColorBadge } from '@/components/subjects/subject-color-badge'
 import { PriorityStars } from '@/components/subjects/priority-stars'
 import { SubjectFormDialog } from '@/components/subjects/subject-form-dialog'
+import { getSubjectProgress } from '@/utils/subject-progress'
 import { useSubjectsStore } from '@/stores/subjects-store'
 
 export function MySubjectsCard() {
@@ -35,7 +36,9 @@ export function MySubjectsCard() {
       </div>
 
       <ul className="mt-3 flex flex-col gap-3">
-        {subjects.map((subject) => (
+        {subjects.map((subject) => {
+          const progress = getSubjectProgress(subject)
+          return (
           <li key={subject.id} className="group flex items-center gap-3">
             <SubjectColorBadge
               name={subject.name}
@@ -48,11 +51,15 @@ export function MySubjectsCard() {
                 <span className="truncate text-sm text-foreground">
                   {subject.name}
                 </span>
-                <span className="text-xs font-medium text-muted-foreground">
-                  {subject.progress}%
-                </span>
+                {progress !== null && (
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {progress}%
+                  </span>
+                )}
               </div>
-              <Progress value={subject.progress} className="mt-1 h-1.5" />
+              {progress !== null && (
+                <Progress value={progress} className="mt-1 h-1.5" />
+              )}
             </div>
             <PriorityStars value={subject.priority} size={10} />
             <SubjectFormDialog
@@ -74,7 +81,8 @@ export function MySubjectsCard() {
               }
             />
           </li>
-        ))}
+          )
+        })}
       </ul>
     </Card>
   )

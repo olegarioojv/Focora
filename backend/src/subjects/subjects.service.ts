@@ -26,8 +26,22 @@ export class SubjectsService {
   }
 
   async update(userId: string, id: string, dto: UpdateSubjectDto) {
-    await this.assertOwnership(userId, id);
-    return this.prisma.subject.update({ where: { id }, data: dto });
+    const existing = await this.assertOwnership(userId, id);
+
+    const data = { ...dto };
+    if (data.completedLessons !== undefined) {
+      // totalLessons may be arriving in this same request (form save) or
+      // already sitting on the row (card's +/- stepper, which only ever
+      // sends completedLessons) — either way, never let it drift past the
+      // total or below zero.
+      const total = data.totalLessons ?? existing.totalLessons;
+      data.completedLessons =
+        total != null
+          ? Math.min(Math.max(data.completedLessons, 0), total)
+          : Math.max(data.completedLessons, 0);
+    }
+
+    return this.prisma.subject.update({ where: { id }, data });
   }
 
   // Reviews and schedule tasks reference a subject only by a bare id
@@ -50,7 +64,8 @@ export class SubjectsService {
           const kept = Array.isArray(tasks)
             ? tasks.filter((task) => task.subjectId !== id)
             : tasks;
-          if (Array.isArray(tasks) && kept.length !== tasks.length) changed = true;
+          if (Array.isArray(tasks) && kept.length !== tasks.length)
+            changed = true;
           cleaned[day] = kept;
         }
         if (changed) {
@@ -70,5 +85,6 @@ export class SubjectsService {
     if (!subject || subject.userId !== userId) {
       throw new NotFoundException('Matéria não encontrada');
     }
+    return subject;
   }
 }

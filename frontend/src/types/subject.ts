@@ -9,7 +9,8 @@ export interface Subject {
   color: string
   priority: SubjectPriority
   goal: string
-  progress: number
+  totalLessons: number | null
+  completedLessons: number
   /** Days this subject may be scheduled on. Empty array means any day. */
   preferredDays: Weekday[]
   imageUrl: string | null
