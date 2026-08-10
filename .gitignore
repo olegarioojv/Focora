@@ -29,3 +29,10 @@ npm-debug.log*
 # OS/editor
 .DS_Store
 .vscode/
+
+# Installers/executables that have no business being in a web-served
+# public/ folder — GitHub rejects pushes over 100MB, and these have shown
+# up there by accident before (drag-and-drop into the wrong folder).
+*.exe
+*.msi
+*.dmg

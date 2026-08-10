@@ -110,6 +110,12 @@ model Settings {
   lastActiveDate         String?
   totalFocusMinutes      Int      @default(0)
   lastPomodoroAwardAt    DateTime?
+  pomodoroSoundsEnabled  Boolean  @default(true)
+  pomodoroSoundVolume    Int      @default(70)
+  pomodoroFocusStartSound String  @default("sino")
+  pomodoroFocusEndSound  String   @default("classico")
+  pomodoroBreakStartSound String  @default("suave")
+  pomodoroBreakEndSound  String   @default("digital")
   updatedAt              DateTime @updatedAt
 
   @@map("settings")

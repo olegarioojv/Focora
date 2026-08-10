@@ -1,8 +1,20 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useGamificationStore } from './gamification-store'
-import { usePomodoroSettingsStore } from './pomodoro-settings-store'
+import { usePomodoroSettingsStore, type PomodoroSoundStage } from './pomodoro-settings-store'
 import { sendNotification } from '@/utils/notifications'
+import { playPomodoroSound } from '@/utils/pomodoro-sounds'
+
+// Small delay between two sounds that fire at the same instant (focus
+// ending and break starting) so they read as two distinct cues instead of
+// overlapping into a single muddy chord.
+const STAGE_TRANSITION_GAP_MS = 400
+
+function playStageSound(stage: PomodoroSoundStage) {
+  const settings = usePomodoroSettingsStore.getState()
+  if (!settings.pomodoroSoundsEnabled) return
+  playPomodoroSound(settings[stage], settings.pomodoroSoundVolume)
+}
 
 export const POMODORO_PRESETS = [25, 50] as const
 export const BREAK_MINUTES = 15
@@ -74,10 +86,17 @@ export const usePomodoroStore = create<PomodoroState>()(
             : { breakMinutes: minutes },
         ),
       start: () =>
-        set((state) => ({
-          isRunning: true,
-          endAt: Date.now() + state.secondsLeft * 1000,
-        })),
+        set((state) => {
+          playStageSound(
+            state.mode === 'focus'
+              ? 'pomodoroFocusStartSound'
+              : 'pomodoroBreakStartSound',
+          )
+          return {
+            isRunning: true,
+            endAt: Date.now() + state.secondsLeft * 1000,
+          }
+        }),
       pause: () =>
         set((state) => ({
           isRunning: false,
@@ -115,6 +134,11 @@ export const usePomodoroStore = create<PomodoroState>()(
                 `Ciclo de foco finalizado. Hora de ${state.breakMinutes} min de descanso!`,
               )
             }
+            playStageSound('pomodoroFocusEndSound')
+            setTimeout(
+              () => playStageSound('pomodoroBreakStartSound'),
+              STAGE_TRANSITION_GAP_MS,
+            )
             return {
               mode: 'break',
               secondsLeft: state.breakMinutes * 60,
@@ -134,6 +158,7 @@ export const usePomodoroStore = create<PomodoroState>()(
               'Hora de voltar ao foco!',
             )
           }
+          playStageSound('pomodoroBreakEndSound')
           return {
             mode: 'focus',
             secondsLeft: state.durationMinutes * 60,

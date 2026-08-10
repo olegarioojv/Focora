@@ -1,5 +1,6 @@
 import { ProfileSection } from './components/profile-section'
 import { PomodoroSettingsSection } from './components/pomodoro-settings-section'
+import { PomodoroSoundsSection } from './components/pomodoro-sounds-section'
 import { ThemeSection } from './components/theme-section'
 import { BackupSection } from './components/backup-section'
 
@@ -17,6 +18,7 @@ export function SettingsPage() {
 
       <ProfileSection />
       <PomodoroSettingsSection />
+      <PomodoroSoundsSection />
       <ThemeSection />
       <BackupSection />
     </div>

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Camera, Flame, LogOut, Settings2, ShieldCheck, Timer, Trash2, Users, Zap } from 'lucide-react'
+import { Bell, Camera, Flame, LogOut, Play, Settings2, ShieldCheck, Timer, Trash2, Users, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -12,13 +12,26 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
+import { Slider } from '@/components/ui/slider'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { useProfileStore } from '@/stores/profile-store'
 import { useGamificationStore } from '@/stores/gamification-store'
-import { usePomodoroSettingsStore } from '@/stores/pomodoro-settings-store'
+import {
+  usePomodoroSettingsStore,
+  type PomodoroSoundStage,
+} from '@/stores/pomodoro-settings-store'
 import { useAuthStore } from '@/stores/auth-store'
 import { useGuestTrialStore } from '@/stores/guest-trial-store'
 import { POMODORO_PRESETS } from '@/stores/pomodoro-store'
+import { SOUND_LIBRARY, playPomodoroSound } from '@/utils/pomodoro-sounds'
 import { getLevelProgress } from '@/utils/gamification'
 import { getChallengeDayNumber } from '@/utils/challenge-day'
 import { fileToResizedDataUrl } from '@/utils/image'
@@ -28,6 +41,12 @@ import { useAuthModalStore } from '@/stores/auth-modal-store'
 
 const TOTAL_DAYS = 100
 const BREAK_PRESETS = [5, 10, 15, 20] as const
+const SOUND_STAGE_ROWS: { stage: PomodoroSoundStage; label: string }[] = [
+  { stage: 'pomodoroFocusStartSound', label: 'Início do foco' },
+  { stage: 'pomodoroFocusEndSound', label: 'Fim do foco' },
+  { stage: 'pomodoroBreakStartSound', label: 'Início do descanso' },
+  { stage: 'pomodoroBreakEndSound', label: 'Fim do descanso' },
+]
 
 export function ProfileModal() {
   const navigate = useNavigate()
@@ -64,12 +83,46 @@ export function ProfileModal() {
   const setDefaultBreakMinutes = usePomodoroSettingsStore(
     (state) => state.setDefaultBreakMinutes,
   )
+  const soundsEnabled = usePomodoroSettingsStore(
+    (state) => state.pomodoroSoundsEnabled,
+  )
+  const soundVolume = usePomodoroSettingsStore(
+    (state) => state.pomodoroSoundVolume,
+  )
+  const focusStartSound = usePomodoroSettingsStore(
+    (state) => state.pomodoroFocusStartSound,
+  )
+  const focusEndSound = usePomodoroSettingsStore(
+    (state) => state.pomodoroFocusEndSound,
+  )
+  const breakStartSound = usePomodoroSettingsStore(
+    (state) => state.pomodoroBreakStartSound,
+  )
+  const breakEndSound = usePomodoroSettingsStore(
+    (state) => state.pomodoroBreakEndSound,
+  )
+  const setSoundsEnabled = usePomodoroSettingsStore(
+    (state) => state.setPomodoroSoundsEnabled,
+  )
+  const setSoundVolume = usePomodoroSettingsStore(
+    (state) => state.setPomodoroSoundVolume,
+  )
+  const setStageSound = usePomodoroSettingsStore(
+    (state) => state.setPomodoroStageSound,
+  )
+  const soundByStage: Record<PomodoroSoundStage, string> = {
+    pomodoroFocusStartSound: focusStartSound,
+    pomodoroFocusEndSound: focusEndSound,
+    pomodoroBreakStartSound: breakStartSound,
+    pomodoroBreakEndSound: breakEndSound,
+  }
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const initials = name.slice(0, 2).toUpperCase()
 
   const [showCustomDuration, setShowCustomDuration] = useState(false)
   const [showCustomBreak, setShowCustomBreak] = useState(false)
+  const [showSoundPicker, setShowSoundPicker] = useState(false)
   const [open, setOpen] = useState(false)
 
   function goTo(path: string) {
@@ -327,6 +380,88 @@ export function ProfileModal() {
                   />
                 )}
               </div>
+            </div>
+
+            <div className="mt-3">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] text-muted-foreground">Sons</p>
+                <div className="flex items-center gap-1.5">
+                  <Switch
+                    size="sm"
+                    checked={soundsEnabled}
+                    onCheckedChange={setSoundsEnabled}
+                    aria-label="Ativar sons do Pomodoro"
+                  />
+                  <button
+                    type="button"
+                    aria-label="Escolher sons do Pomodoro"
+                    aria-expanded={showSoundPicker}
+                    onClick={() => setShowSoundPicker((value) => !value)}
+                    className={cn(
+                      'flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground',
+                      showSoundPicker && 'bg-accent text-foreground',
+                    )}
+                  >
+                    <Bell className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+
+              {showSoundPicker && (
+                <div className="mt-1.5 flex flex-col gap-1.5">
+                  {SOUND_STAGE_ROWS.map(({ stage, label }) => (
+                    <div key={stage} className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] text-muted-foreground">
+                        {label}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <Select
+                          value={soundByStage[stage]}
+                          onValueChange={(value) => setStageSound(stage, value)}
+                        >
+                          <SelectTrigger size="sm" className="w-28 text-[11px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {SOUND_LIBRARY.map((sound) => (
+                              <SelectItem key={sound.key} value={sound.key}>
+                                {sound.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon-sm"
+                          aria-label={`Ouvir som ${label}`}
+                          onClick={() =>
+                            playPomodoroSound(soundByStage[stage], soundVolume)
+                          }
+                        >
+                          <Play className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">
+                      Volume
+                    </span>
+                    <Slider
+                      value={[soundVolume]}
+                      onValueChange={([value]) => setSoundVolume(value)}
+                      max={100}
+                      step={5}
+                      className="max-w-28"
+                    />
+                    <span className="w-8 text-right text-[11px] text-muted-foreground">
+                      {soundVolume}%
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

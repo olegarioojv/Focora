@@ -17,6 +17,12 @@ export interface SettingsResponse {
   currentStreak: number
   lastActiveDate: string | null
   totalFocusMinutes: number
+  pomodoroSoundsEnabled: boolean
+  pomodoroSoundVolume: number
+  pomodoroFocusStartSound: string
+  pomodoroFocusEndSound: string
+  pomodoroBreakStartSound: string
+  pomodoroBreakEndSound: string
 }
 
 export interface UpdateSettingsInput {
@@ -25,6 +31,12 @@ export interface UpdateSettingsInput {
   defaultBreakMinutes?: number
   notifyOnComplete?: boolean
   dailyGoalPomodoros?: number
+  pomodoroSoundsEnabled?: boolean
+  pomodoroSoundVolume?: number
+  pomodoroFocusStartSound?: string
+  pomodoroFocusEndSound?: string
+  pomodoroBreakStartSound?: string
+  pomodoroBreakEndSound?: string
 }
 
 export interface DailyLogResponse {
