@@ -10,29 +10,19 @@ export const AUTH_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 const isProd = process.env.NODE_ENV === 'production';
 
-// Cross-origin (frontend and API on different domains in production)
-// cookies need SameSite=None, which browsers only honor alongside
-// Secure — that requires HTTPS, which local dev over plain http doesn't
-// have. Lax works fine for localhost-to-localhost (SameSite compares
-// registrable domain, not port).
-//
-// Deliberately NOT using `Partitioned` (CHIPS), even though browsers warn
-// about it: a `Partitioned` cookie's storage is keyed to whichever
-// top-level site was active when it was set. The OAuth login flow sets
-// this cookie mid-redirect while the browser is briefly ON the API's own
-// domain (a first-party moment) before landing back on the frontend — so
-// the cookie gets partitioned under the API's own site, and is then
-// invisible to the frontend's later same cross-site fetches (partition key
-// mismatch: set under the API's site, looked up under the frontend's
-// site). That silently logged OAuth users back out as guests. Regular
-// email/password/guest logins never hit this because the cookie is always
-// both set AND read from the same cross-site fetch context. SameSite=None
-// alone is sufficient for our case (a legitimate cross-site API cookie,
-// not third-party tracking storage), so it's fine to skip CHIPS here.
+// The frontend never talks to this API directly in the browser — in
+// production it calls its own origin (focora-eight.vercel.app/api/*),
+// which Vercel transparently rewrites to this backend (see frontend's
+// vercel.json). As far as the browser is concerned, every request is
+// same-origin, so the cookie is a completely ordinary first-party cookie:
+// SameSite=Lax works everywhere, no browser-specific cross-site cookie
+// rules (Safari ITP, Chrome's third-party phase-out, CHIPS/Partitioned)
+// apply at all. Only `secure` still needs to be conditional — local dev
+// runs over plain HTTP, which Secure cookies refuse to attach to.
 export function authCookieOptions() {
   return {
     httpOnly: true,
-    sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
+    sameSite: 'lax' as const,
     secure: isProd,
     path: '/',
     maxAge: AUTH_COOKIE_MAX_AGE_MS,
@@ -42,7 +32,7 @@ export function authCookieOptions() {
 export function csrfCookieOptions() {
   return {
     httpOnly: false, // must be JS-readable — the frontend echoes it back as a header
-    sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
+    sameSite: 'lax' as const,
     secure: isProd,
     path: '/',
     maxAge: AUTH_COOKIE_MAX_AGE_MS,
