@@ -11,9 +11,17 @@ interface GroupCardProps {
 export function GroupCard({ group }: GroupCardProps) {
   return (
     <Card className="flex items-center gap-4 border border-border p-4">
-      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-2xl">
-        {group.icon}
-      </span>
+      <div className="relative shrink-0">
+        <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/15 text-2xl">
+          {group.icon}
+        </span>
+        {group.hasUnreadMessages && (
+          <span
+            title="Novas mensagens"
+            className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background bg-destructive"
+          />
+        )}
+      </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <p className="truncate text-sm font-medium text-foreground">

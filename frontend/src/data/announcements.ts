@@ -12,6 +12,27 @@ export interface Announcement {
 // Newest first — the top entry's id is what "seen" is compared against.
 export const ANNOUNCEMENTS: Announcement[] = [
   {
+    id: '2026-08-10-group-chat',
+    title: 'Chat nos grupos',
+    description:
+      'Converse com o pessoal do seu grupo de estudo direto pelo ícone de balão na página do grupo. Uma bolinha vermelha avisa quando chegar mensagem nova.',
+    date: '2026-08-10',
+  },
+  {
+    id: '2026-08-10-pomodoro-notifications',
+    title: 'Notificação ao terminar o Pomodoro',
+    description:
+      'Ative o sino no card do Pomodoro para receber uma notificação do navegador quando um ciclo terminar — funciona mesmo se você estiver em outra página do app.',
+    date: '2026-08-10',
+  },
+  {
+    id: '2026-08-10-subject-progress',
+    title: 'Progresso automático das matérias',
+    description:
+      'Informe quantas aulas uma matéria tem e vá marcando as concluídas — a porcentagem de progresso é calculada sozinha, no card e no formulário de edição.',
+    date: '2026-08-10',
+  },
+  {
     id: '2026-08-10-daily-goal',
     title: 'Meta diária de pomodoros',
     description:

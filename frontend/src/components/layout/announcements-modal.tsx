@@ -55,7 +55,7 @@ export function AnnouncementsModal() {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3">
+        <div className="flex max-h-[428px] flex-col gap-3 overflow-y-auto pr-1">
           {ANNOUNCEMENTS.length === 0 && (
             <p className="text-sm text-muted-foreground">
               Nenhuma novidade por enquanto.

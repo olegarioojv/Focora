@@ -19,6 +19,7 @@ import { GroupsService } from './groups.service';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
 import { JoinGroupDto } from './dto/join-group.dto';
+import { SendMessageDto } from './dto/send-message.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('groups')
@@ -54,8 +55,37 @@ export class GroupsController {
   }
 
   @Get(':id')
-  getDetail(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+  getDetail(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.groupsService.getDetail(user.id, id);
+  }
+
+  @Get(':id/messages')
+  listMessages(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Query('after') after?: string,
+  ) {
+    return this.groupsService.listMessages(user.id, id, after);
+  }
+
+  @Post(':id/messages')
+  sendMessage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: SendMessageDto,
+  ) {
+    return this.groupsService.sendMessage(user.id, id, dto.content);
+  }
+
+  @Post(':id/messages/read')
+  markMessagesRead(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.groupsService.markMessagesRead(user.id, id);
   }
 
   @Patch(':id')
@@ -68,12 +98,18 @@ export class GroupsController {
   }
 
   @Delete(':id')
-  remove(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+  remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.groupsService.remove(user.id, id);
   }
 
   @Post(':id/leave')
-  leave(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+  leave(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.groupsService.leave(user.id, id);
   }
 

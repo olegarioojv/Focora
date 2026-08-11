@@ -13,6 +13,8 @@ import { groupsApi, type PublicGroupSummary } from '@/services/groups-api'
 import { ApiError } from '@/services/api-client'
 import { useGroupsStore } from '@/stores/groups-store'
 
+const GROUPS_POLL_MS = 15_000
+
 function GroupCardSkeleton() {
   return (
     <Card className="flex items-center gap-4 border border-border p-4">
@@ -38,11 +40,20 @@ export function GroupsPage() {
   const [joiningId, setJoiningId] = useState<string | null>(null)
 
   useEffect(() => {
-    groupsApi
-      .list()
-      .then(hydrate)
-      .catch(() => toast.error('Não foi possível carregar seus grupos'))
-      .finally(() => setLoading(false))
+    function load(isFirstLoad: boolean) {
+      groupsApi
+        .list()
+        .then(hydrate)
+        .catch(() => {
+          if (isFirstLoad) toast.error('Não foi possível carregar seus grupos')
+        })
+        .finally(() => setLoading(false))
+    }
+    load(true)
+    // Polled (not just loaded once) so unread-message dots on "Meus grupos"
+    // update without the user having to refresh the page.
+    const interval = setInterval(() => load(false), GROUPS_POLL_MS)
+    return () => clearInterval(interval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -104,6 +115,7 @@ export function GroupsPage() {
                 maxMembers: group.maxMembers,
                 memberCount: group.members.length,
                 isOwner: group.isOwner,
+                hasUnreadMessages: group.hasUnreadMessages,
               },
               ...groups,
             ])

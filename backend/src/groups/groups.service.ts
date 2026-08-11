@@ -10,6 +10,7 @@ import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
 
 const ONLINE_WINDOW_MS = 5 * 60 * 1000;
+const MESSAGE_PAGE_SIZE = 50;
 const INVITE_CODE_LENGTH = 8;
 // Excludes visually ambiguous characters (0/O, 1/I/L) — these codes get
 // typed by hand when sharing outside the app link/QR flow.
@@ -27,6 +28,31 @@ function daysAgoDateString(days: number) {
   const date = new Date();
   date.setDate(date.getDate() - days);
   return date.toISOString().slice(0, 10);
+}
+
+function hasUnread(latestMessageAt: Date | undefined, lastReadAt: Date | null) {
+  if (!latestMessageAt) return false;
+  if (!lastReadAt) return true;
+  return latestMessageAt.getTime() > lastReadAt.getTime();
+}
+
+function mapGroupMessage(message: {
+  id: string;
+  groupId: string;
+  userId: string;
+  content: string;
+  createdAt: Date;
+  user: { id: string; name: string; avatarUrl: string | null };
+}) {
+  return {
+    id: message.id,
+    groupId: message.groupId,
+    userId: message.userId,
+    userName: message.user.name,
+    userAvatarUrl: message.user.avatarUrl,
+    content: message.content,
+    createdAt: message.createdAt,
+  };
 }
 
 @Injectable()
@@ -58,11 +84,16 @@ export class GroupsService {
   async listForUser(userId: string) {
     const memberships = await this.prisma.groupMember.findMany({
       where: { userId },
-      include: { group: { include: { _count: { select: { members: true } } } } },
+      include: {
+        group: { include: { _count: { select: { members: true } } } },
+      },
       orderBy: { joinedAt: 'desc' },
     });
 
-    return memberships.map(({ group }) => ({
+    const groupIds = memberships.map((membership) => membership.groupId);
+    const latestByGroup = await this.getLatestMessageTimeByGroup(groupIds);
+
+    return memberships.map(({ group, lastReadAt }) => ({
       id: group.id,
       name: group.name,
       description: group.description,
@@ -71,7 +102,22 @@ export class GroupsService {
       maxMembers: group.maxMembers,
       memberCount: group._count.members,
       isOwner: group.ownerId === userId,
+      hasUnreadMessages: hasUnread(latestByGroup.get(group.id), lastReadAt),
     }));
+  }
+
+  private async getLatestMessageTimeByGroup(groupIds: string[]) {
+    if (groupIds.length === 0) return new Map<string, Date>();
+    const latest = await this.prisma.groupMessage.groupBy({
+      by: ['groupId'],
+      where: { groupId: { in: groupIds } },
+      _max: { createdAt: true },
+    });
+    return new Map(
+      latest
+        .filter((row) => row._max.createdAt)
+        .map((row) => [row.groupId, row._max.createdAt as Date]),
+    );
   }
 
   async listPublic(userId: string, search?: string) {
@@ -116,7 +162,8 @@ export class GroupsService {
     if (!group) throw new NotFoundException('Grupo não encontrado');
 
     const isMember = group.members.some((member) => member.userId === userId);
-    if (!isMember) throw new ForbiddenException('Você não participa deste grupo');
+    if (!isMember)
+      throw new ForbiddenException('Você não participa deste grupo');
 
     const memberIds = group.members.map((member) => member.userId);
     const since = daysAgoDateString(6);
@@ -157,6 +204,15 @@ export class GroupsService {
       joinedAt: member.joinedAt,
     }));
 
+    const myMembership = group.members.find(
+      (member) => member.userId === userId,
+    );
+    const latestMessage = await this.prisma.groupMessage.findFirst({
+      where: { groupId },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    });
+
     return {
       id: group.id,
       name: group.name,
@@ -167,7 +223,64 @@ export class GroupsService {
       inviteCode: group.inviteCode,
       isOwner: group.ownerId === userId,
       members,
+      hasUnreadMessages: hasUnread(
+        latestMessage?.createdAt,
+        myMembership?.lastReadAt ?? null,
+      ),
     };
+  }
+
+  // Ascending (oldest first) — either the initial page (last 50 messages)
+  // or, when `after` is set, everything newer than that timestamp for the
+  // frontend's chat poll to append.
+  async listMessages(userId: string, groupId: string, after?: string) {
+    await this.assertMember(userId, groupId);
+
+    if (after) {
+      const messages = await this.prisma.groupMessage.findMany({
+        where: { groupId, createdAt: { gt: new Date(after) } },
+        orderBy: { createdAt: 'asc' },
+        take: MESSAGE_PAGE_SIZE,
+        include: {
+          user: { select: { id: true, name: true, avatarUrl: true } },
+        },
+      });
+      return messages.map(mapGroupMessage);
+    }
+
+    const messages = await this.prisma.groupMessage.findMany({
+      where: { groupId },
+      orderBy: { createdAt: 'desc' },
+      take: MESSAGE_PAGE_SIZE,
+      include: { user: { select: { id: true, name: true, avatarUrl: true } } },
+    });
+    return messages.reverse().map(mapGroupMessage);
+  }
+
+  async sendMessage(userId: string, groupId: string, content: string) {
+    await this.assertMember(userId, groupId);
+    const message = await this.prisma.groupMessage.create({
+      data: { groupId, userId, content: content.trim() },
+      include: { user: { select: { id: true, name: true, avatarUrl: true } } },
+    });
+    return mapGroupMessage(message);
+  }
+
+  async markMessagesRead(userId: string, groupId: string) {
+    await this.assertMember(userId, groupId);
+    await this.prisma.groupMember.update({
+      where: { groupId_userId: { groupId, userId } },
+      data: { lastReadAt: new Date() },
+    });
+    return { success: true };
+  }
+
+  private async assertMember(userId: string, groupId: string) {
+    const membership = await this.prisma.groupMember.findUnique({
+      where: { groupId_userId: { groupId, userId } },
+    });
+    if (!membership)
+      throw new ForbiddenException('Você não participa deste grupo');
   }
 
   async update(userId: string, groupId: string, dto: UpdateGroupDto) {
@@ -181,7 +294,9 @@ export class GroupsService {
   }
 
   async leave(userId: string, groupId: string) {
-    const group = await this.prisma.group.findUnique({ where: { id: groupId } });
+    const group = await this.prisma.group.findUnique({
+      where: { id: groupId },
+    });
     if (!group) throw new NotFoundException('Grupo não encontrado');
     if (group.ownerId === userId) {
       throw new ForbiddenException(
@@ -192,7 +307,8 @@ export class GroupsService {
     const membership = await this.prisma.groupMember.findUnique({
       where: { groupId_userId: { groupId, userId } },
     });
-    if (!membership) throw new NotFoundException('Você não participa deste grupo');
+    if (!membership)
+      throw new NotFoundException('Você não participa deste grupo');
 
     await this.prisma.groupMember.delete({ where: { id: membership.id } });
   }
@@ -255,13 +371,16 @@ export class GroupsService {
       const existing = await tx.groupMember.findUnique({
         where: { groupId_userId: { groupId: group.id, userId } },
       });
-      if (existing) throw new ConflictException('Você já participa deste grupo');
+      if (existing)
+        throw new ConflictException('Você já participa deste grupo');
 
       const memberCount = await tx.groupMember.count({
         where: { groupId: group.id },
       });
       if (memberCount >= maxMembers) {
-        throw new ConflictException('Este grupo já atingiu o número máximo de participantes');
+        throw new ConflictException(
+          'Este grupo já atingiu o número máximo de participantes',
+        );
       }
 
       await tx.groupMember.create({ data: { groupId: group.id, userId } });
@@ -271,10 +390,14 @@ export class GroupsService {
   }
 
   private async assertOwner(userId: string, groupId: string) {
-    const group = await this.prisma.group.findUnique({ where: { id: groupId } });
+    const group = await this.prisma.group.findUnique({
+      where: { id: groupId },
+    });
     if (!group) throw new NotFoundException('Grupo não encontrado');
     if (group.ownerId !== userId) {
-      throw new ForbiddenException('Apenas o administrador do grupo pode fazer isso');
+      throw new ForbiddenException(
+        'Apenas o administrador do grupo pode fazer isso',
+      );
     }
     return group;
   }
@@ -288,6 +411,8 @@ export class GroupsService {
       });
       if (!existing) return code;
     }
-    throw new ConflictException('Não foi possível gerar um código de convite, tente novamente');
+    throw new ConflictException(
+      'Não foi possível gerar um código de convite, tente novamente',
+    );
   }
 }

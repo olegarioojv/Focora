@@ -1,12 +1,16 @@
 import { useEffect } from 'react'
-import { Pause, Play, SkipForward } from 'lucide-react'
+import { Bell, Pause, Play, SkipForward } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 import { POMODORO_PRESETS, usePomodoroStore } from '@/stores/pomodoro-store'
 import { usePomodoroSettingsStore } from '@/stores/pomodoro-settings-store'
-import { usePomodoroTimer } from '@/hooks/use-pomodoro-timer'
+import {
+  isNotificationSupported,
+  requestNotificationPermission,
+} from '@/utils/notifications'
 
 function formatTime(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60)
@@ -22,8 +26,6 @@ function formatHoursMinutes(totalMinutes: number) {
 }
 
 export function PomodoroCard() {
-  usePomodoroTimer()
-
   const durationMinutes = usePomodoroStore((state) => state.durationMinutes)
   const breakMinutes = usePomodoroStore((state) => state.breakMinutes)
   const mode = usePomodoroStore((state) => state.mode)
@@ -48,6 +50,12 @@ export function PomodoroCard() {
   const dailyGoalPomodoros = usePomodoroSettingsStore(
     (state) => state.dailyGoalPomodoros,
   )
+  const notifyOnComplete = usePomodoroSettingsStore(
+    (state) => state.notifyOnComplete,
+  )
+  const setNotifyOnComplete = usePomodoroSettingsStore(
+    (state) => state.setNotifyOnComplete,
+  )
 
   // Re-applies the configured defaults whenever they change (mount included),
   // as long as the timer hasn't started yet — never fights a live session.
@@ -71,9 +79,39 @@ export function PomodoroCard() {
     setDuration(minutes)
   }
 
+  async function handleNotifyToggle() {
+    const nextValue = !notifyOnComplete
+    if (nextValue && isNotificationSupported() && Notification.permission !== 'granted') {
+      const result = await requestNotificationPermission()
+      if (result !== 'granted') {
+        toast.error('Permissão de notificações negada')
+        return
+      }
+      toast.success('Notificações ativadas')
+    }
+    setNotifyOnComplete(nextValue)
+  }
+
   return (
     <Card className="border border-border p-5">
-      <p className="text-sm font-medium text-foreground">Pomodoro – Hoje</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-medium text-foreground">Pomodoro – Hoje</p>
+        <button
+          type="button"
+          onClick={() => void handleNotifyToggle()}
+          aria-pressed={notifyOnComplete}
+          aria-label="Notificar ao concluir um ciclo do Pomodoro"
+          title="Notificar ao concluir um ciclo"
+          className={cn(
+            'flex h-6 w-6 items-center justify-center rounded-full transition-colors',
+            notifyOnComplete
+              ? 'text-foreground'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          <Bell className="h-4 w-4" fill={notifyOnComplete ? 'currentColor' : 'none'} />
+        </button>
+      </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {POMODORO_PRESETS.map((minutes) => (

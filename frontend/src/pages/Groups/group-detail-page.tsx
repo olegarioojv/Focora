@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
 import { GroupMemberCard } from './components/group-member-card'
 import { GroupRankingCard } from './components/group-ranking-card'
+import { GroupChatModal } from './components/group-chat-modal'
 import { InvitePanel } from './components/invite-panel'
 import { GroupSettingsModal } from './components/group-settings-modal'
 import { groupsApi, type GroupDetail } from '@/services/groups-api'
@@ -150,6 +151,16 @@ export function GroupDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <GroupChatModal
+            groupId={group.id}
+            currentUserId={currentUserId}
+            hasUnread={group.hasUnreadMessages}
+            onRead={() =>
+              setGroup((current) =>
+                current ? { ...current, hasUnreadMessages: false } : current,
+              )
+            }
+          />
           {group.isOwner ? (
             <GroupSettingsModal
               group={group}

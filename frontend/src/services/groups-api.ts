@@ -11,6 +11,7 @@ export interface GroupSummary {
   maxMembers: number
   memberCount: number
   isOwner: boolean
+  hasUnreadMessages: boolean
 }
 
 export interface PublicGroupSummary {
@@ -47,6 +48,17 @@ export interface GroupDetail {
   inviteCode: string
   isOwner: boolean
   members: GroupMemberEntry[]
+  hasUnreadMessages: boolean
+}
+
+export interface GroupChatMessage {
+  id: string
+  groupId: string
+  userId: string
+  userName: string
+  userAvatarUrl: string | null
+  content: string
+  createdAt: string
 }
 
 export interface GroupInvitePreview {
@@ -86,4 +98,12 @@ export const groupsApi = {
     apiGet<GroupInvitePreview>(`/groups/invite/${code}`),
   join: (inviteCode: string) =>
     apiPost<{ id: string }>('/groups/join', { inviteCode }),
+  listMessages: (id: string, after?: string) =>
+    apiGet<GroupChatMessage[]>(
+      `/groups/${id}/messages${after ? `?after=${encodeURIComponent(after)}` : ''}`,
+    ),
+  sendMessage: (id: string, content: string) =>
+    apiPost<GroupChatMessage>(`/groups/${id}/messages`, { content }),
+  markMessagesRead: (id: string) =>
+    apiPost<{ success: boolean }>(`/groups/${id}/messages/read`),
 }
