@@ -13,6 +13,19 @@ coverage/
 .env
 .env.*
 
+# SSH/TLS private keys — a real ed25519 keypair ended up committed here
+# by accident once (backend/ed25519*), got pushed to the public repo, and
+# had to be purged from history. These patterns exist so `git add .`
+# can never repeat that.
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+ed25519
+ed25519.pub
+*.pem
+*.key
+
 # Claude Code project config
 .claude/
 
