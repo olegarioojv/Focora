@@ -10,6 +10,8 @@ import type { Subject } from '@/types/subject'
 import { generateWeeklySchedule } from '@/utils/generate-weekly-schedule'
 import { planApi, type PlanResponse } from '@/services/plan-api'
 import { ApiError } from '@/services/api-client'
+import { getCurrentWeekStartISO } from '@/utils/date'
+import { useSubjectsStore } from './subjects-store'
 
 const defaultAvailability: WeeklyAvailability = {
   monday: 2,
@@ -33,6 +35,7 @@ interface PlanState {
   objective: string
   availability: WeeklyAvailability
   schedule: WeeklySchedule | null
+  weekStart: string | null
   hydrate: (plan: PlanResponse | null) => void
   setObjective: (objective: string) => void
   setAvailability: (day: Weekday, hours: number) => void
@@ -57,12 +60,40 @@ export const usePlanStore = create<PlanState>()((set, get) => ({
   objective: '',
   availability: defaultAvailability,
   schedule: null,
-  hydrate: (plan) =>
+  weekStart: null,
+  hydrate: (plan) => {
+    const availability = plan?.availability ?? defaultAvailability
+
+    if (!plan) {
+      set({ objective: '', availability, schedule: null, weekStart: null })
+      return
+    }
+
+    const currentWeekStart = getCurrentWeekStartISO()
+    if (plan.weekStart !== currentWeekStart) {
+      const subjects = useSubjectsStore.getState().subjects
+      const schedule = generateWeeklySchedule(subjects, availability)
+      set({
+        objective: plan.objective,
+        availability,
+        schedule,
+        weekStart: currentWeekStart,
+      })
+      planApi
+        .update({ schedule, weekStart: currentWeekStart })
+        .catch((error) =>
+          reportError(error, 'Não foi possível atualizar o cronograma da semana'),
+        )
+      return
+    }
+
     set({
-      objective: plan?.objective ?? '',
-      availability: plan?.availability ?? defaultAvailability,
-      schedule: plan?.schedule ?? null,
-    }),
+      objective: plan.objective,
+      availability,
+      schedule: plan.schedule,
+      weekStart: plan.weekStart,
+    })
+  },
   setObjective: (objective) => {
     set({ objective })
     planApi
@@ -79,9 +110,12 @@ export const usePlanStore = create<PlanState>()((set, get) => ({
       )
   },
   generateSchedule: (subjects) => {
+    const weekStart = getCurrentWeekStartISO()
     const schedule = generateWeeklySchedule(subjects, get().availability)
-    set({ schedule })
-    syncSchedule(schedule)
+    set({ schedule, weekStart })
+    planApi
+      .update({ schedule, weekStart })
+      .catch((error) => reportError(error, 'Não foi possível salvar o cronograma'))
   },
   moveTask: ({ taskId, fromDay, toDay, overTaskId }) => {
     const { schedule } = get()

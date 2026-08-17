@@ -12,4 +12,8 @@ export class UpdatePlanDto {
   @IsOptional()
   @IsObject()
   schedule?: Record<string, unknown> | null;
+
+  @IsOptional()
+  @IsString()
+  weekStart?: string;
 }

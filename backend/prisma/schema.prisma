@@ -70,6 +70,7 @@ model Plan {
   objective    String   @default("")
   availability Json
   schedule     Json?
+  weekStart    String?
   updatedAt    DateTime @updatedAt
 
   @@map("plans")

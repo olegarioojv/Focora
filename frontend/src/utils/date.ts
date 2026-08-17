@@ -28,11 +28,19 @@ export function getTodayWeekday(): Weekday {
   return JS_DAY_TO_WEEKDAY[new Date().getDay()]
 }
 
-export function getCurrentWeekDates(): Record<Weekday, Date> {
+export function getCurrentWeekStart(): Date {
   const today = new Date()
   const jsDay = today.getDay()
   const mondayOffset = jsDay === 0 ? -6 : 1 - jsDay
-  const monday = addDays(today, mondayOffset)
+  return addDays(today, mondayOffset)
+}
+
+export function getCurrentWeekStartISO(): string {
+  return toISODate(getCurrentWeekStart())
+}
+
+export function getCurrentWeekDates(): Record<Weekday, Date> {
+  const monday = getCurrentWeekStart()
 
   const dates = {} as Record<Weekday, Date>
   WEEKDAYS.forEach((weekday, index) => {

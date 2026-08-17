@@ -6,12 +6,14 @@ export interface PlanResponse {
   objective: string
   availability: WeeklyAvailability
   schedule: WeeklySchedule | null
+  weekStart: string | null
 }
 
 export interface UpdatePlanInput {
   objective?: string
   availability?: WeeklyAvailability
   schedule?: WeeklySchedule | null
+  weekStart?: string
 }
 
 export const planApi = {
