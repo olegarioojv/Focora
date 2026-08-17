@@ -22,8 +22,6 @@ Também existe um **painel administrativo** para quem cuida da plataforma: métr
 100DIAS/
 ├── frontend/   → interface (React + TypeScript + Vite + Tailwind)
 ├── backend/    → API (NestJS + Prisma + PostgreSQL)
-├── DEPLOY.md   → guia de deploy em produção
-└── RETROSPECTIVA.md → histórico do que foi construído, decisões e aprendizados
 ```
 
 Cada pasta tem seu próprio `README.md` com detalhes técnicos, estrutura de código e passo a passo para rodar localmente:
