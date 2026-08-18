@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UpsertDayPlanDto } from './dto/upsert-day-plan.dto';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { ReorderSessionsDto } from './dto/reorder-sessions.dto';
+import { dateStringInTimezone } from '../common/utils/date';
 
 @Injectable()
 export class DayPlanService {
@@ -68,6 +69,46 @@ export class DayPlanService {
       where: { userId, weekStart },
       orderBy: [{ weekday: 'asc' }, { position: 'asc' }],
     });
+  }
+
+  // completedAt is a real timestamp, unrelated to weekStart/weekday (those
+  // describe the planned slot, not when it was actually finished) — so a
+  // heatmap day's sessions have to be found by scanning a window around the
+  // target date and re-checking each one against the app's timezone, since
+  // Prisma can't filter "date in a timezone" directly.
+  async findCompletedSessionsByDate(userId: string, date: string) {
+    const dayStart = new Date(`${date}T00:00:00-03:00`);
+    const rangeStart = new Date(dayStart.getTime() - 24 * 60 * 60 * 1000);
+    const rangeEnd = new Date(dayStart.getTime() + 2 * 24 * 60 * 60 * 1000);
+
+    const sessions = await this.prisma.studySession.findMany({
+      where: {
+        userId,
+        completed: true,
+        completedAt: { gte: rangeStart, lt: rangeEnd },
+      },
+      orderBy: { completedAt: 'asc' },
+    });
+    const matching = sessions.filter(
+      (session) =>
+        session.completedAt &&
+        dateStringInTimezone(session.completedAt) === date,
+    );
+
+    const subjectIds = [...new Set(matching.map((s) => s.subjectId))];
+    const subjects = await this.prisma.subject.findMany({
+      where: { id: { in: subjectIds } },
+    });
+    const nameById = new Map(subjects.map((s) => [s.id, s.name]));
+
+    return matching.map((session) => ({
+      id: session.id,
+      subjectId: session.subjectId,
+      subjectName: nameById.get(session.subjectId) ?? 'Matéria removida',
+      category: session.category,
+      durationMinutes: session.durationMinutes,
+      completedAt: session.completedAt,
+    }));
   }
 
   async syncCurrentWeek(userId: string, weekStart: string) {

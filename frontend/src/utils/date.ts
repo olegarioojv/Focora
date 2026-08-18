@@ -62,3 +62,14 @@ export function formatFullDate(iso: string): string {
   const [year, month, day] = iso.split('-')
   return `${day}/${month}/${year}`
 }
+
+/** Formats an ISO timestamp as HH:mm in the app's timezone (Brazil) —
+ * matches the backend's day boundaries so a session completed at 23h50
+ * local shows that time instead of shifting into the next UTC day. */
+export function formatTime(iso: string): string {
+  return new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(iso))
+}

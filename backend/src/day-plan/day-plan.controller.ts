@@ -59,6 +59,17 @@ export class DayPlanController {
     return this.dayPlanService.findSessions(user.id, weekStart);
   }
 
+  @Get('sessions/by-date')
+  findSessionsByDate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('date') date: string,
+  ) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new BadRequestException('Data inválida');
+    }
+    return this.dayPlanService.findCompletedSessionsByDate(user.id, date);
+  }
+
   @Post('sync')
   sync(@CurrentUser() user: AuthenticatedUser, @Body() dto: SyncDayPlanDto) {
     return this.dayPlanService.syncCurrentWeek(user.id, dto.weekStart);

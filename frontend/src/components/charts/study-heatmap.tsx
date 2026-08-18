@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import type { DailyStat } from '@/utils/daily-logs'
+import { StudyDayModal } from './study-day-modal'
 
 function intensityClass(minutes: number) {
   if (minutes === 0) return 'bg-muted'
@@ -15,6 +17,11 @@ interface StudyHeatmapProps {
 }
 
 export function StudyHeatmap({ data }: StudyHeatmapProps) {
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  // Most recent day first (like a feed) — `data` itself stays oldest-first
+  // since other charts (weekly/monthly) rely on that order.
+  const reversedData = [...data].reverse()
+
   return (
     <Card className="border border-border p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -32,17 +39,24 @@ export function StudyHeatmap({ data }: StudyHeatmapProps) {
         </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-1.5">
-        {data.map((stat) => (
-          <span
+        {reversedData.map((stat) => (
+          <button
             key={stat.date}
+            type="button"
             title={`${stat.date}: ${stat.minutes} min`}
+            onClick={() => setSelectedDate(stat.date)}
             className={cn(
-              'h-4 w-4 rounded-[3px]',
+              'h-4 w-4 rounded-[3px] transition-transform hover:scale-125',
               intensityClass(stat.minutes),
             )}
           />
         ))}
       </div>
+
+      <StudyDayModal
+        date={selectedDate}
+        onOpenChange={(open) => !open && setSelectedDate(null)}
+      />
     </Card>
   )
 }
