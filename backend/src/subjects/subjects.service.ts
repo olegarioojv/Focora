@@ -48,7 +48,9 @@ export class SubjectsService {
   // (no DB relation) — deleting the subject without cleaning those up
   // left them permanently orphaned: invisible in every screen that reads
   // them, but still counted in "Resumo do Dia"'s totals, making the
-  // day's goal impossible to ever complete again.
+  // day's goal impossible to ever complete again. Notes/flashcards use the
+  // same bare-id convention but are nulled rather than deleted below, since
+  // they're durable knowledge outliving the subject they were tagged with.
   async remove(userId: string, id: string) {
     await this.assertOwnership(userId, id);
 
@@ -58,6 +60,18 @@ export class SubjectsService {
         where: { subjectId: id, dayConfig: { userId } },
       });
       await tx.studySession.deleteMany({ where: { userId, subjectId: id } });
+
+      // Notes/flashcards are durable knowledge that should outlive the
+      // subject they were tagged with — unlike the scheduling rows above,
+      // they're nulled out instead of deleted.
+      await tx.note.updateMany({
+        where: { userId, subjectId: id },
+        data: { subjectId: null },
+      });
+      await tx.flashcard.updateMany({
+        where: { userId, subjectId: id },
+        data: { subjectId: null },
+      });
 
       const plan = await tx.plan.findUnique({ where: { userId } });
       const schedule = plan?.schedule as Record<string, ScheduleTask[]> | null;

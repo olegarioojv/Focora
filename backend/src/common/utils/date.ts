@@ -14,3 +14,9 @@ export function dateStringInTimezone(date: Date) {
 export function todayDateString() {
   return dateStringInTimezone(new Date());
 }
+
+export function addDaysToDateString(dateStr: string, days: number): string {
+  const base = new Date(`${dateStr}T12:00:00`);
+  base.setDate(base.getDate() + days);
+  return dateStringInTimezone(base);
+}
