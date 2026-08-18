@@ -3,6 +3,8 @@ import { planApi } from '@/services/plan-api'
 import { reviewsApi } from '@/services/reviews-api'
 import { settingsApi, dailyLogsApi, rankingApi } from '@/services/settings-api'
 import { usersApi } from '@/services/users-api'
+import { notesApi } from '@/services/notes-api'
+import { flashcardsApi } from '@/services/flashcards-api'
 import { useSubjectsStore } from '@/stores/subjects-store'
 import { usePlanStore } from '@/stores/plan-store'
 import { useReviewsStore } from '@/stores/reviews-store'
@@ -13,22 +15,35 @@ import { useProfileStore } from '@/stores/profile-store'
 import { useAuthStore } from '@/stores/auth-store'
 import { useDailyLogsStore } from '@/stores/daily-logs-store'
 import { useRankingStore } from '@/stores/ranking-store'
+import { useNotesStore } from '@/stores/notes-store'
+import { useFlashcardsStore } from '@/stores/flashcards-store'
 
 /** Fetches everything for the signed-in user and hydrates the local
  * stores that components already read from. Call once after login/
  * register succeeds, and once on app boot if a session is already
  * saved (see AuthBootstrap). */
 export async function syncUserData() {
-  const [subjects, plan, reviews, settings, user, dailyLogs, ranking] =
-    await Promise.all([
-      subjectsApi.list(),
-      planApi.get(),
-      reviewsApi.list(),
-      settingsApi.get(),
-      usersApi.me(),
-      dailyLogsApi.list(),
-      rankingApi.list(),
-    ])
+  const [
+    subjects,
+    plan,
+    reviews,
+    settings,
+    user,
+    dailyLogs,
+    ranking,
+    notes,
+    flashcards,
+  ] = await Promise.all([
+    subjectsApi.list(),
+    planApi.get(),
+    reviewsApi.list(),
+    settingsApi.get(),
+    usersApi.me(),
+    dailyLogsApi.list(),
+    rankingApi.list(),
+    notesApi.list(),
+    flashcardsApi.list(),
+  ])
 
   useSubjectsStore.getState().hydrate(subjects)
   usePlanStore.getState().hydrate(plan)
@@ -40,6 +55,8 @@ export async function syncUserData() {
   useAuthStore.getState().setUser(user)
   useDailyLogsStore.getState().hydrate(dailyLogs)
   useRankingStore.getState().hydrate(ranking)
+  useNotesStore.getState().hydrate(notes)
+  useFlashcardsStore.getState().hydrate(flashcards)
 }
 
 /** Clears every synced store back to its empty state — used on logout
@@ -53,4 +70,6 @@ export function resetSyncedStores() {
   usePomodoroSettingsStore.getState().reset()
   useDailyLogsStore.getState().reset()
   useRankingStore.getState().reset()
+  useNotesStore.getState().hydrate([])
+  useFlashcardsStore.getState().hydrate([])
 }

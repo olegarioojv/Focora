@@ -9,6 +9,7 @@ import { SubjectsPage } from '@/pages/Subjects/subjects-page'
 import { SchedulePage } from '@/pages/Schedule/schedule-page'
 import { StatisticsPage } from '@/pages/Statistics/statistics-page'
 import { ReviewsPage } from '@/pages/Reviews/reviews-page'
+import { SecondBrainPage } from '@/pages/SecondBrain/second-brain-page'
 import { GamificationPage } from '@/pages/Gamification/gamification-page'
 import { SettingsPage } from '@/pages/Settings/settings-page'
 import { GroupsPage } from '@/pages/Groups/groups-page'
@@ -43,6 +44,8 @@ export const router = createBrowserRouter([
       { path: 'schedule', element: <SchedulePage /> },
       { path: 'statistics', element: <StatisticsPage /> },
       { path: 'reviews', element: <ReviewsPage /> },
+      { path: 'brain', element: <SecondBrainPage /> },
+      { path: 'brain/:noteId', element: <SecondBrainPage /> },
       { path: 'gamification', element: <GamificationPage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'grupos', element: <GroupsPage /> },
