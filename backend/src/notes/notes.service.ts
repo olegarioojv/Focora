@@ -115,7 +115,10 @@ export class NotesService {
     await tx.noteLink.deleteMany({ where: { sourceNoteId: noteId } });
     if (targets.length > 0) {
       await tx.noteLink.createMany({
-        data: targets.map((t) => ({ sourceNoteId: noteId, targetNoteId: t.id })),
+        data: targets.map((t) => ({
+          sourceNoteId: noteId,
+          targetNoteId: t.id,
+        })),
       });
     }
   }

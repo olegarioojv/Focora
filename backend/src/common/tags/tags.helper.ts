@@ -2,7 +2,11 @@ import type { Prisma } from '../../../generated/prisma/client';
 
 type Tx = Prisma.TransactionClient;
 
-async function upsertTagIds(tx: Tx, userId: string, tagNames: string[]): Promise<string[]> {
+async function upsertTagIds(
+  tx: Tx,
+  userId: string,
+  tagNames: string[],
+): Promise<string[]> {
   const names = [...new Set(tagNames.map((n) => n.trim()).filter(Boolean))];
   const tags = await Promise.all(
     names.map((name) =>
