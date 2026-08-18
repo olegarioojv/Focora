@@ -49,6 +49,7 @@ export function ReviewRow({ review, subject, onToggle }: ReviewRowProps) {
         </p>
       </div>
       <Badge variant="outline">{review.intervalDays}d</Badge>
+      <Badge variant="outline">{review.durationMinutes}min</Badge>
     </div>
   )
 }

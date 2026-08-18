@@ -16,4 +16,12 @@ export class UpdatePlanDto {
   @IsOptional()
   @IsString()
   weekStart?: string;
+
+  @IsOptional()
+  @IsObject()
+  studyConfig?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsObject()
+  reviewConfig?: Record<string, unknown>;
 }

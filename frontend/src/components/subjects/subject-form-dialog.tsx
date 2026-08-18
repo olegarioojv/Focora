@@ -18,8 +18,6 @@ import { SubjectColorBadge } from './subject-color-badge'
 import { subjectSchema, type SubjectFormValues } from './subject-form-schema'
 import { SUBJECT_COLORS } from '@/utils/subject-colors'
 import { cn } from '@/lib/utils'
-import { WEEKDAYS } from '@/types/plan'
-import { WEEKDAY_SHORT_LABELS } from '@/utils/weekday-labels'
 import { fileToResizedDataUrl } from '@/utils/image'
 import { useSubjectsStore } from '@/stores/subjects-store'
 import type { Subject } from '@/types/subject'
@@ -35,9 +33,10 @@ const emptyValues: SubjectFormValues = {
   color: SUBJECT_COLORS[0],
   priority: 3,
   goal: '',
-  preferredDays: [],
   imageUrl: null,
   totalLessons: null,
+  reviewCount: 3,
+  reviewDurationMinutes: 30,
 }
 
 export function SubjectFormDialog({
@@ -54,6 +53,7 @@ export function SubjectFormDialog({
   const setCompletedLessons = useSubjectsStore(
     (state) => state.setCompletedLessons,
   )
+  const removeSubject = useSubjectsStore((state) => state.removeSubject)
   const liveCompletedLessons = useSubjectsStore((state) =>
     subject ? state.subjects.find((item) => item.id === subject.id)?.completedLessons : undefined,
   )
@@ -83,6 +83,13 @@ export function SubjectFormDialog({
     setOpen(false)
   }
 
+  function handleDelete() {
+    if (!subject) return
+    removeSubject(subject.id)
+    toast.success('Matéria removida')
+    setOpen(false)
+  }
+
   const watchedName = watch('name')
   const watchedColor = watch('color')
   const watchedTotalLessons = watch('totalLessons')
@@ -90,7 +97,7 @@ export function SubjectFormDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {subject ? 'Editar matéria' : 'Nova matéria'}
@@ -270,48 +277,6 @@ export function SubjectFormDialog({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-foreground">
-              Dias da semana
-            </span>
-            <p className="text-xs text-muted-foreground">
-              Escolha os dias em que quer estudar essa matéria. Nenhum dia
-              selecionado = qualquer dia.
-            </p>
-            <Controller
-              control={control}
-              name="preferredDays"
-              render={({ field }) => (
-                <div className="flex flex-wrap gap-1.5">
-                  {WEEKDAYS.map((day) => {
-                    const selected = field.value.includes(day)
-                    return (
-                      <button
-                        key={day}
-                        type="button"
-                        onClick={() =>
-                          field.onChange(
-                            selected
-                              ? field.value.filter((item) => item !== day)
-                              : [...field.value, day],
-                          )
-                        }
-                        className={cn(
-                          'rounded-md border px-2.5 py-1.5 text-xs font-medium',
-                          selected
-                            ? 'border-primary bg-primary text-primary-foreground'
-                            : 'border-border text-foreground hover:bg-accent',
-                        )}
-                      >
-                        {WEEKDAY_SHORT_LABELS[day]}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
             <label
               className="text-sm font-medium text-foreground"
               htmlFor="subject-goal"
@@ -365,6 +330,70 @@ export function SubjectFormDialog({
             )}
           </div>
 
+          <div className="flex flex-col gap-1.5">
+            <label
+              className="text-sm font-medium text-foreground"
+              htmlFor="subject-review-count"
+            >
+              Quantas revisões automáticas
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Depois de concluir uma tarefa dessa matéria, quantas revisões
+              espaçadas devem ser agendadas. 0 desativa.
+            </p>
+            <Controller
+              control={control}
+              name="reviewCount"
+              render={({ field }) => (
+                <Input
+                  id="subject-review-count"
+                  type="number"
+                  min={0}
+                  max={8}
+                  value={field.value}
+                  onChange={(event) =>
+                    field.onChange(Number(event.target.value) || 0)
+                  }
+                />
+              )}
+            />
+            {errors.reviewCount && (
+              <p className="text-xs text-destructive">
+                {errors.reviewCount.message}
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label
+              className="text-sm font-medium text-foreground"
+              htmlFor="subject-review-duration"
+            >
+              Duração de cada revisão (min)
+            </label>
+            <Controller
+              control={control}
+              name="reviewDurationMinutes"
+              render={({ field }) => (
+                <Input
+                  id="subject-review-duration"
+                  type="number"
+                  min={5}
+                  step={5}
+                  value={field.value}
+                  onChange={(event) =>
+                    field.onChange(Number(event.target.value) || 5)
+                  }
+                />
+              )}
+            />
+            {errors.reviewDurationMinutes && (
+              <p className="text-xs text-destructive">
+                {errors.reviewDurationMinutes.message}
+              </p>
+            )}
+          </div>
+
           {subject && watchedTotalLessons && (
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-foreground">
@@ -402,7 +431,18 @@ export function SubjectFormDialog({
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className={cn(subject && 'sm:justify-between')}>
+            {subject && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-destructive hover:text-destructive"
+                onClick={handleDelete}
+              >
+                <Trash2 className="h-4 w-4" />
+                Excluir matéria
+              </Button>
+            )}
             <Button type="submit">
               {subject ? 'Salvar' : 'Adicionar'}
             </Button>

@@ -73,8 +73,8 @@ export function ReviewsPage() {
         <div>
           <h1 className="text-xl font-semibold text-foreground">Revisões</h1>
           <p className="text-sm text-muted-foreground">
-            Revisões espaçadas em 1, 3, 7, 15 e 30 dias após concluir uma
-            tarefa de estudo no cronograma.
+            Revisões espaçadas geradas automaticamente ao concluir tarefas de
+            estudo, conforme a configuração de cada matéria.
           </p>
         </div>
         {isNotificationSupported() && permission !== 'granted' && (

@@ -1,27 +1,12 @@
 import { create } from 'zustand'
 import { toast } from 'sonner'
-import type {
-  NewTaskInput,
-  Weekday,
-  WeeklyAvailability,
-  WeeklySchedule,
-} from '@/types/plan'
-import type { Subject } from '@/types/subject'
-import { generateWeeklySchedule } from '@/utils/generate-weekly-schedule'
+import type { NewTaskInput, Weekday, WeeklySchedule } from '@/types/plan'
+import { WEEKDAYS } from '@/types/plan'
+import type { StudySession } from '@/types/day-plan'
+import { dayPlanApi } from '@/services/day-plan-api'
 import { planApi, type PlanResponse } from '@/services/plan-api'
 import { ApiError } from '@/services/api-client'
 import { getCurrentWeekStartISO } from '@/utils/date'
-import { useSubjectsStore } from './subjects-store'
-
-const defaultAvailability: WeeklyAvailability = {
-  monday: 2,
-  tuesday: 2,
-  wednesday: 2,
-  thursday: 2,
-  friday: 2,
-  saturday: 1,
-  sunday: 1,
-}
 
 interface MoveTaskInput {
   taskId: string
@@ -33,13 +18,11 @@ interface MoveTaskInput {
 
 interface PlanState {
   objective: string
-  availability: WeeklyAvailability
   schedule: WeeklySchedule | null
   weekStart: string | null
   hydrate: (plan: PlanResponse | null) => void
   setObjective: (objective: string) => void
-  setAvailability: (day: Weekday, hours: number) => void
-  generateSchedule: (subjects: Subject[]) => void
+  generateSchedule: () => void
   moveTask: (input: MoveTaskInput) => void
   toggleTaskCompleted: (day: Weekday, taskId: string) => void
   addTask: (day: Weekday, input: NewTaskInput) => void
@@ -50,49 +33,64 @@ function reportError(error: unknown, fallback: string) {
   toast.error(error instanceof ApiError ? error.message : fallback)
 }
 
-function syncSchedule(schedule: WeeklySchedule | null) {
-  planApi
-    .update({ schedule })
-    .catch((error) => reportError(error, 'Não foi possível salvar o cronograma'))
+function emptySchedule(): WeeklySchedule {
+  const schedule = {} as WeeklySchedule
+  WEEKDAYS.forEach((day) => {
+    schedule[day] = []
+  })
+  return schedule
+}
+
+function groupSessions(sessions: StudySession[]): WeeklySchedule {
+  const schedule = emptySchedule()
+  for (const session of sessions) {
+    schedule[session.weekday].push({
+      id: session.id,
+      subjectId: session.subjectId,
+      type: session.category,
+      durationMinutes: session.durationMinutes,
+      completed: session.completed,
+    })
+  }
+  return schedule
 }
 
 export const usePlanStore = create<PlanState>()((set, get) => ({
   objective: '',
-  availability: defaultAvailability,
   schedule: null,
   weekStart: null,
   hydrate: (plan) => {
-    const availability = plan?.availability ?? defaultAvailability
-
     if (!plan) {
-      set({ objective: '', availability, schedule: null, weekStart: null })
+      set({ objective: '', schedule: null, weekStart: null })
       return
     }
 
     const currentWeekStart = getCurrentWeekStartISO()
+    set({ objective: plan.objective })
+
     if (plan.weekStart !== currentWeekStart) {
-      const subjects = useSubjectsStore.getState().subjects
-      const schedule = generateWeeklySchedule(subjects, availability)
-      set({
-        objective: plan.objective,
-        availability,
-        schedule,
-        weekStart: currentWeekStart,
-      })
+      set({ weekStart: currentWeekStart })
       planApi
-        .update({ schedule, weekStart: currentWeekStart })
+        .update({ weekStart: currentWeekStart })
+        .catch((error) =>
+          reportError(error, 'Não foi possível salvar a semana atual'),
+        )
+      dayPlanApi
+        .sync(currentWeekStart)
+        .then((sessions) => set({ schedule: groupSessions(sessions) }))
         .catch((error) =>
           reportError(error, 'Não foi possível atualizar o cronograma da semana'),
         )
       return
     }
 
-    set({
-      objective: plan.objective,
-      availability,
-      schedule: plan.schedule,
-      weekStart: plan.weekStart,
-    })
+    set({ weekStart: plan.weekStart })
+    dayPlanApi
+      .listSessions(currentWeekStart)
+      .then((sessions) => set({ schedule: groupSessions(sessions) }))
+      .catch((error) =>
+        reportError(error, 'Não foi possível carregar o cronograma'),
+      )
   },
   setObjective: (objective) => {
     set({ objective })
@@ -100,22 +98,14 @@ export const usePlanStore = create<PlanState>()((set, get) => ({
       .update({ objective })
       .catch((error) => reportError(error, 'Não foi possível salvar o objetivo'))
   },
-  setAvailability: (day, hours) => {
-    const availability = { ...get().availability, [day]: hours }
-    set({ availability })
-    planApi
-      .update({ availability })
-      .catch((error) =>
-        reportError(error, 'Não foi possível salvar a disponibilidade'),
-      )
-  },
-  generateSchedule: (subjects) => {
+  generateSchedule: () => {
     const weekStart = getCurrentWeekStartISO()
-    const schedule = generateWeeklySchedule(subjects, get().availability)
-    set({ schedule, weekStart })
-    planApi
-      .update({ schedule, weekStart })
-      .catch((error) => reportError(error, 'Não foi possível salvar o cronograma'))
+    set({ weekStart })
+    planApi.update({ weekStart }).catch(() => {})
+    dayPlanApi
+      .sync(weekStart)
+      .then((sessions) => set({ schedule: groupSessions(sessions) }))
+      .catch((error) => reportError(error, 'Não foi possível gerar o cronograma'))
   },
   moveTask: ({ taskId, fromDay, toDay, overTaskId }) => {
     const { schedule } = get()
@@ -137,31 +127,51 @@ export const usePlanStore = create<PlanState>()((set, get) => ({
 
     const nextSchedule = { ...schedule, [fromDay]: fromTasks, [toDay]: toTasks }
     set({ schedule: nextSchedule })
-    syncSchedule(nextSchedule)
+
+    const changes =
+      fromDay === toDay
+        ? [{ weekday: toDay, orderedIds: toTasks.map((item) => item.id) }]
+        : [
+            { weekday: fromDay, orderedIds: fromTasks.map((item) => item.id) },
+            { weekday: toDay, orderedIds: toTasks.map((item) => item.id) },
+          ]
+
+    dayPlanApi.reorder(changes).catch((error) => {
+      set({ schedule })
+      reportError(error, 'Não foi possível mover a tarefa')
+    })
   },
   toggleTaskCompleted: (day, taskId) => {
     const { schedule } = get()
     if (!schedule) return
+    const task = schedule[day].find((item) => item.id === taskId)
+    if (!task) return
+    const nextCompleted = !task.completed
 
     const nextSchedule = {
       ...schedule,
-      [day]: schedule[day].map((task) =>
-        task.id === taskId ? { ...task, completed: !task.completed } : task,
+      [day]: schedule[day].map((item) =>
+        item.id === taskId ? { ...item, completed: nextCompleted } : item,
       ),
     }
     set({ schedule: nextSchedule })
-    syncSchedule(nextSchedule)
+
+    dayPlanApi.updateSession(taskId, nextCompleted).catch((error) => {
+      set({ schedule })
+      reportError(error, 'Não foi possível salvar a tarefa')
+    })
   },
   addTask: (day, input) => {
-    const { schedule } = get()
-    if (!schedule) return
+    const { schedule, weekStart } = get()
+    if (!schedule || !weekStart) return
 
+    const tempId = crypto.randomUUID()
     const nextSchedule = {
       ...schedule,
       [day]: [
         ...schedule[day],
         {
-          id: crypto.randomUUID(),
+          id: tempId,
           subjectId: input.subjectId,
           type: input.type,
           durationMinutes: input.durationMinutes,
@@ -170,7 +180,40 @@ export const usePlanStore = create<PlanState>()((set, get) => ({
       ],
     }
     set({ schedule: nextSchedule })
-    syncSchedule(nextSchedule)
+
+    dayPlanApi
+      .createSession({
+        subjectId: input.subjectId,
+        category: input.type,
+        weekday: day,
+        durationMinutes: input.durationMinutes,
+        weekStart,
+      })
+      .then((session) => {
+        set((state) => {
+          if (!state.schedule) return state
+          return {
+            schedule: {
+              ...state.schedule,
+              [day]: state.schedule[day].map((item) =>
+                item.id === tempId
+                  ? {
+                      id: session.id,
+                      subjectId: session.subjectId,
+                      type: session.category,
+                      durationMinutes: session.durationMinutes,
+                      completed: session.completed,
+                    }
+                  : item,
+              ),
+            },
+          }
+        })
+      })
+      .catch((error) => {
+        set({ schedule })
+        reportError(error, 'Não foi possível adicionar a tarefa')
+      })
   },
   removeTask: (day, taskId) => {
     const { schedule } = get()
@@ -181,6 +224,10 @@ export const usePlanStore = create<PlanState>()((set, get) => ({
       [day]: schedule[day].filter((task) => task.id !== taskId),
     }
     set({ schedule: nextSchedule })
-    syncSchedule(nextSchedule)
+
+    dayPlanApi.removeSession(taskId).catch((error) => {
+      set({ schedule })
+      reportError(error, 'Não foi possível remover a tarefa')
+    })
   },
 }))

@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { SubjectColorBadge } from './subject-color-badge'
 import { PriorityStars } from './priority-stars'
 import { SubjectFormDialog } from './subject-form-dialog'
-import { WEEKDAY_SHORT_LABELS } from '@/utils/weekday-labels'
 import { getSubjectProgress } from '@/utils/subject-progress'
 import { useSubjectsStore } from '@/stores/subjects-store'
 import type { Subject } from '@/types/subject'
@@ -105,14 +104,6 @@ export function SubjectCard({ subject, onUpdate, onRemove }: SubjectCardProps) {
       <div className="mt-3">
         <PriorityStars value={subject.priority} />
       </div>
-
-      <p className="mt-3 text-xs text-muted-foreground">
-        {subject.preferredDays.length === 0
-          ? 'Qualquer dia da semana'
-          : subject.preferredDays
-              .map((day) => WEEKDAY_SHORT_LABELS[day])
-              .join(', ')}
-      </p>
     </Card>
   )
 }

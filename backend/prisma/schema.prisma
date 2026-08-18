@@ -36,7 +36,9 @@ model User {
   plan             Plan?
   settings         Settings?
   dailyLogs        DailyLog[]
-  ownedGroups      Group[]        @relation("GroupOwner")
+  dayPlanConfigs   DayPlanConfig[]
+  studySessions    StudySession[]
+  ownedGroups      Group[]         @relation("GroupOwner")
   groupMemberships GroupMember[]
   groupMessages    GroupMessage[]
 
@@ -45,19 +47,21 @@ model User {
 }
 
 model Subject {
-  id               String   @id @default(uuid())
-  userId           String
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name             String
-  color            String
-  priority         Int
-  goal             String
-  totalLessons     Int?
-  completedLessons Int      @default(0)
-  preferredDays    String[] @default([])
-  imageUrl         String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                    String   @id @default(uuid())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                  String
+  color                 String
+  priority              Int
+  goal                  String
+  totalLessons          Int?
+  completedLessons      Int      @default(0)
+  preferredDays         String[] @default([])
+  imageUrl              String?
+  reviewCount           Int      @default(3)
+  reviewDurationMinutes Int      @default(30)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   @@index([userId])
   @@map("subjects")
@@ -71,25 +75,77 @@ model Plan {
   availability Json
   schedule     Json?
   weekStart    String?
+  studyConfig  Json?
+  reviewConfig Json?
   updatedAt    DateTime @updatedAt
 
   @@map("plans")
 }
 
 model Review {
-  id           String   @id @default(uuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subjectId    String
-  sourceTaskId String
-  intervalDays Int
-  dueDate      String
-  completed    Boolean  @default(false)
-  notified     Boolean  @default(false)
-  createdAt    DateTime @default(now())
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId       String
+  sourceTaskId    String
+  intervalDays    Int
+  dueDate         String
+  durationMinutes Int      @default(30)
+  completed       Boolean  @default(false)
+  notified        Boolean  @default(false)
+  createdAt       DateTime @default(now())
 
   @@index([userId])
   @@map("reviews")
+}
+
+model DayPlanConfig {
+  id           String         @id @default(uuid())
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekday      String
+  category     String
+  subjectCount Int            @default(0)
+  entries      DayPlanEntry[]
+  updatedAt    DateTime       @updatedAt
+
+  @@unique([userId, weekday, category])
+  @@map("day_plan_configs")
+}
+
+model DayPlanEntry {
+  id              String        @id @default(uuid())
+  dayConfigId     String
+  dayConfig       DayPlanConfig @relation(fields: [dayConfigId], references: [id], onDelete: Cascade)
+  subjectId       String
+  durationMinutes Int
+  repetitions     Int           @default(1)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([dayConfigId, subjectId])
+  @@index([subjectId])
+  @@map("day_plan_entries")
+}
+
+model StudySession {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId       String
+  category        String
+  weekday         String
+  weekStart       String
+  durationMinutes Int
+  sequence        Int       @default(1)
+  position        Int       @default(0)
+  completed       Boolean   @default(false)
+  completedAt     DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@unique([userId, weekStart, weekday, category, subjectId, sequence])
+  @@index([userId, weekStart])
+  @@map("study_sessions")
 }
 
 model Settings {

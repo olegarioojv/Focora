@@ -12,6 +12,20 @@ export interface Announcement {
 // Newest first — the top entry's id is what "seen" is compared against.
 export const ANNOUNCEMENTS: Announcement[] = [
   {
+    id: '2026-08-17-day-plan-schedule',
+    title: 'Cronograma de Estudos por dia',
+    description:
+      'Configure quantas matérias quer estudar (ou revisar) em cada dia da semana, escolha quais e defina tempo e repetições de cada uma. Deixou algum dia só com a quantidade? Ao clicar em "Gerar cronograma", o resto é preenchido automaticamente — manual e automático convivem juntos.',
+    date: '2026-08-17',
+  },
+  {
+    id: '2026-08-17-delete-subject-in-edit',
+    title: 'Excluir matéria direto na edição',
+    description:
+      'O formulário de editar matéria agora tem um botão "Excluir matéria" no rodapé, disponível em qualquer tela onde você edita uma matéria — inclusive no widget "Minhas Matérias" do painel.',
+    date: '2026-08-17',
+  },
+  {
     id: '2026-08-10-group-chat',
     title: 'Chat nos grupos',
     description:

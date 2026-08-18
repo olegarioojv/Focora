@@ -1,5 +1,3 @@
-import type { Weekday } from './plan'
-
 /** Star rating from 1 (lowest) to 5 (highest). */
 export type SubjectPriority = number
 
@@ -11,7 +9,8 @@ export interface Subject {
   goal: string
   totalLessons: number | null
   completedLessons: number
-  /** Days this subject may be scheduled on. Empty array means any day. */
-  preferredDays: Weekday[]
   imageUrl: string | null
+  /** Spaced reviews to schedule after completing a task of this subject. 0 disables it. */
+  reviewCount: number
+  reviewDurationMinutes: number
 }

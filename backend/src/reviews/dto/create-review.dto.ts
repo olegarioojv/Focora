@@ -1,4 +1,4 @@
-import { IsBoolean, IsInt, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateReviewDto {
   @IsString()
@@ -12,6 +12,11 @@ export class CreateReviewDto {
 
   @IsString()
   dueDate: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(5)
+  durationMinutes?: number;
 
   @IsOptional()
   @IsBoolean()

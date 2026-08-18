@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import { toast } from 'sonner'
 import type { Subject, SubjectPriority } from '@/types/subject'
-import type { Weekday } from '@/types/plan'
 import { subjectsApi } from '@/services/subjects-api'
 import { ApiError } from '@/services/api-client'
 import { usePlanStore } from './plan-store'
@@ -13,9 +12,10 @@ export interface SubjectInput {
   color: string
   priority: SubjectPriority
   goal: string
-  preferredDays: Weekday[]
   imageUrl: string | null
   totalLessons: number | null
+  reviewCount: number
+  reviewDurationMinutes: number
 }
 
 interface SubjectsState {

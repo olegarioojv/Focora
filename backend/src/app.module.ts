@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { SubjectsModule } from './subjects/subjects.module';
 import { PlanModule } from './plan/plan.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { DayPlanModule } from './day-plan/day-plan.module';
 import { SettingsModule } from './settings/settings.module';
 import { AdminModule } from './admin/admin.module';
 import { GroupsModule } from './groups/groups.module';
@@ -28,6 +29,7 @@ import { ErrorLogFilter } from './common/filters/error-log.filter';
     SubjectsModule,
     PlanModule,
     ReviewsModule,
+    DayPlanModule,
     SettingsModule,
     AdminModule,
     GroupsModule,

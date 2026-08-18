@@ -36,6 +36,8 @@ export class PlanService {
           dto.schedule === null
             ? Prisma.JsonNull
             : (dto.schedule as Prisma.InputJsonValue | undefined),
+        studyConfig: dto.studyConfig as Prisma.InputJsonValue | undefined,
+        reviewConfig: dto.reviewConfig as Prisma.InputJsonValue | undefined,
       },
     });
   }

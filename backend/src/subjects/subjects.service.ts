@@ -54,6 +54,10 @@ export class SubjectsService {
 
     await this.prisma.$transaction(async (tx) => {
       await tx.review.deleteMany({ where: { userId, subjectId: id } });
+      await tx.dayPlanEntry.deleteMany({
+        where: { subjectId: id, dayConfig: { userId } },
+      });
+      await tx.studySession.deleteMany({ where: { userId, subjectId: id } });
 
       const plan = await tx.plan.findUnique({ where: { userId } });
       const schedule = plan?.schedule as Record<string, ScheduleTask[]> | null;
