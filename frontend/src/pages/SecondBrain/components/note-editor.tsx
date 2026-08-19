@@ -363,11 +363,11 @@ export function NoteEditor({ note, onNavigate }: NoteEditorProps) {
         </TabsList>
 
         {mode === 'editar' && (
-          <div className="flex flex-wrap items-center gap-1 rounded-lg bg-muted p-1.5">
+          <div className="flex flex-nowrap items-center gap-1 overflow-x-auto rounded-lg bg-muted p-1.5">
             <Select value="0" onValueChange={applyHeading}>
               <SelectTrigger
                 size="sm"
-                className="h-8 w-[104px] border-none bg-transparent px-2 text-sm shadow-none"
+                className="h-8 w-[104px] shrink-0 border-none bg-transparent px-2 text-sm shadow-none"
               >
                 <SelectValue placeholder="Título" />
               </SelectTrigger>
@@ -478,7 +478,7 @@ function ToolbarButton({
       aria-label={label}
       title={label}
       onClick={onClick}
-      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
     >
       {children}
     </Button>
@@ -486,5 +486,5 @@ function ToolbarButton({
 }
 
 function ToolbarDivider() {
-  return <span className="mx-1 h-5 w-px bg-border" />
+  return <span className="mx-1 h-5 w-px shrink-0 bg-border" />
 }
