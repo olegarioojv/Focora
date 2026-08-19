@@ -357,72 +357,70 @@ export function NoteEditor({ note, onNavigate }: NoteEditorProps) {
       </div>
 
       <Tabs value={mode} onValueChange={(v) => setMode(v as typeof mode)} className="gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <TabsList>
-            <TabsTrigger value="editar">Editar</TabsTrigger>
-            <TabsTrigger value="visualizar">Visualizar</TabsTrigger>
-          </TabsList>
+        <TabsList>
+          <TabsTrigger value="editar">Editar</TabsTrigger>
+          <TabsTrigger value="visualizar">Visualizar</TabsTrigger>
+        </TabsList>
 
-          {mode === 'editar' && (
-            <div className="flex flex-wrap items-center gap-0.5 rounded-lg bg-muted p-1">
-              <Select value="0" onValueChange={applyHeading}>
-                <SelectTrigger
-                  size="sm"
-                  className="h-7 w-[92px] border-none bg-transparent px-2 text-xs shadow-none"
-                >
-                  <SelectValue placeholder="Título" />
-                </SelectTrigger>
-                <SelectContent>
-                  {HEADING_LEVELS.map((h) => (
-                    <SelectItem key={h.value} value={h.value}>
-                      {h.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <ToolbarDivider />
-              <ToolbarButton label="Negrito" onClick={() => wrapSelection('**')}>
-                <Bold className="h-3.5 w-3.5" />
-              </ToolbarButton>
-              <ToolbarButton label="Itálico" onClick={() => wrapSelection('*')}>
-                <Italic className="h-3.5 w-3.5" />
-              </ToolbarButton>
-              <ToolbarButton label="Tachado" onClick={() => wrapSelection('~~')}>
-                <Strikethrough className="h-3.5 w-3.5" />
-              </ToolbarButton>
-              <ToolbarDivider />
-              <ToolbarButton label="Lista" onClick={() => prefixLines('- ')}>
-                <List className="h-3.5 w-3.5" />
-              </ToolbarButton>
-              <ToolbarButton label="Lista numerada" onClick={() => prefixLines('1. ')}>
-                <ListOrdered className="h-3.5 w-3.5" />
-              </ToolbarButton>
-              <ToolbarButton label="Checklist" onClick={() => prefixLines('- [ ] ')}>
-                <ListChecks className="h-3.5 w-3.5" />
-              </ToolbarButton>
-              <ToolbarButton label="Citação" onClick={() => prefixLines('> ')}>
-                <Quote className="h-3.5 w-3.5" />
-              </ToolbarButton>
-              <ToolbarDivider />
-              <ToolbarButton label="Link" onClick={() => wrapSelection('[', '](url)')}>
-                <Link2 className="h-3.5 w-3.5" />
-              </ToolbarButton>
-              <ToolbarButton label="Código" onClick={() => wrapSelection('`')}>
-                <Code className="h-3.5 w-3.5" />
-              </ToolbarButton>
-              <ToolbarButton
-                label="Tabela"
-                onClick={() =>
-                  insertAtCursor(
-                    '\n| Coluna 1 | Coluna 2 |\n| --- | --- |\n| Célula | Célula |\n',
-                  )
-                }
+        {mode === 'editar' && (
+          <div className="flex flex-wrap items-center gap-1 rounded-lg bg-muted p-1.5">
+            <Select value="0" onValueChange={applyHeading}>
+              <SelectTrigger
+                size="sm"
+                className="h-8 w-[104px] border-none bg-transparent px-2 text-sm shadow-none"
               >
-                <TableIcon className="h-3.5 w-3.5" />
-              </ToolbarButton>
-            </div>
-          )}
-        </div>
+                <SelectValue placeholder="Título" />
+              </SelectTrigger>
+              <SelectContent>
+                {HEADING_LEVELS.map((h) => (
+                  <SelectItem key={h.value} value={h.value}>
+                    {h.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <ToolbarDivider />
+            <ToolbarButton label="Negrito" onClick={() => wrapSelection('**')}>
+              <Bold className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton label="Itálico" onClick={() => wrapSelection('*')}>
+              <Italic className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton label="Tachado" onClick={() => wrapSelection('~~')}>
+              <Strikethrough className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarDivider />
+            <ToolbarButton label="Lista" onClick={() => prefixLines('- ')}>
+              <List className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton label="Lista numerada" onClick={() => prefixLines('1. ')}>
+              <ListOrdered className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton label="Checklist" onClick={() => prefixLines('- [ ] ')}>
+              <ListChecks className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton label="Citação" onClick={() => prefixLines('> ')}>
+              <Quote className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarDivider />
+            <ToolbarButton label="Link" onClick={() => wrapSelection('[', '](url)')}>
+              <Link2 className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton label="Código" onClick={() => wrapSelection('`')}>
+              <Code className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton
+              label="Tabela"
+              onClick={() =>
+                insertAtCursor(
+                  '\n| Coluna 1 | Coluna 2 |\n| --- | --- |\n| Célula | Célula |\n',
+                )
+              }
+            >
+              <TableIcon className="h-4 w-4" />
+            </ToolbarButton>
+          </div>
+        )}
 
         <TabsContent value="editar">
           <div className="relative">
@@ -480,7 +478,7 @@ function ToolbarButton({
       aria-label={label}
       title={label}
       onClick={onClick}
-      className="h-7 w-7 text-muted-foreground hover:text-foreground"
+      className="h-8 w-8 text-muted-foreground hover:text-foreground"
     >
       {children}
     </Button>
@@ -488,5 +486,5 @@ function ToolbarButton({
 }
 
 function ToolbarDivider() {
-  return <span className="mx-0.5 h-4 w-px bg-border" />
+  return <span className="mx-1 h-5 w-px bg-border" />
 }
