@@ -1,7 +1,15 @@
 import { useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Archive, ChevronRight, Folder, Plus, Star, StickyNote } from 'lucide-react'
+import {
+  Archive,
+  ChevronRight,
+  FileText,
+  Folder,
+  Plus,
+  Star,
+  StickyNote,
+} from 'lucide-react'
 import type { Note } from '@/types/note'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -239,7 +247,7 @@ function Folder_({
             </p>
           ) : (
             notes.map((note) => (
-              <NoteRow
+              <NoteFileRow
                 key={note.id}
                 note={note}
                 active={note.id === selectedNoteId}
@@ -250,6 +258,35 @@ function Folder_({
         </div>
       )}
     </div>
+  )
+}
+
+function NoteFileRow({
+  note,
+  active,
+  onSelect,
+}: {
+  note: Note
+  active: boolean
+  onSelect: (id: string) => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(note.id)}
+      className={cn(
+        'flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors',
+        active ? 'bg-primary text-primary-foreground' : 'hover:bg-accent',
+      )}
+    >
+      <FileText
+        className={cn(
+          'h-3.5 w-3.5 shrink-0',
+          active ? 'text-primary-foreground/80' : 'text-muted-foreground',
+        )}
+      />
+      <span className="truncate">{note.title || 'Sem título'}</span>
+    </button>
   )
 }
 
