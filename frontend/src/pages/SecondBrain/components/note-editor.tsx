@@ -16,6 +16,7 @@ import {
   Link2,
   Code,
   Table as TableIcon,
+  Plus,
 } from 'lucide-react'
 import type { Note } from '@/types/note'
 import { Input } from '@/components/ui/input'
@@ -63,6 +64,7 @@ export function NoteEditor({ note, onNavigate }: NoteEditorProps) {
   const [content, setContent] = useState(note?.content ?? '')
   const [tags, setTags] = useState<string[]>(note?.tags ?? [])
   const [tagInput, setTagInput] = useState('')
+  const [addingTag, setAddingTag] = useState(false)
   const [selection, setSelection] = useState('')
   const [mode, setMode] = useState<'editar' | 'visualizar'>('editar')
   const [saveState, setSaveState] = useState<SaveState>('saved')
@@ -76,6 +78,7 @@ export function NoteEditor({ note, onNavigate }: NoteEditorProps) {
     setContent(note?.content ?? '')
     setTags(note?.tags ?? [])
     setTagInput('')
+    setAddingTag(false)
     setSelection('')
     setMode('editar')
     setSaveState('saved')
@@ -142,8 +145,10 @@ export function NoteEditor({ note, onNavigate }: NoteEditorProps) {
         commitTags([...tags, value])
       }
       setTagInput('')
-    } else if (e.key === 'Backspace' && tagInput === '' && tags.length > 0) {
-      commitTags(tags.slice(0, -1))
+      setAddingTag(false)
+    } else if (e.key === 'Escape') {
+      setTagInput('')
+      setAddingTag(false)
     }
   }
 
@@ -334,7 +339,7 @@ export function NoteEditor({ note, onNavigate }: NoteEditorProps) {
           {tags.map((tag) => (
             <Badge
               key={tag}
-              className="gap-1 rounded-full border-none bg-primary/10 text-primary hover:bg-primary/15"
+              className="gap-1.5 rounded-full border-none bg-primary/25 px-3 py-1 text-sm font-medium text-primary-foreground hover:bg-primary/35"
             >
               {tag}
               <button
@@ -346,13 +351,29 @@ export function NoteEditor({ note, onNavigate }: NoteEditorProps) {
               </button>
             </Badge>
           ))}
-          <Input
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={handleTagKeyDown}
-            placeholder="+ tag"
-            className="h-7 w-20 border-none bg-transparent px-1.5 text-xs shadow-none focus-visible:ring-0"
-          />
+
+          {addingTag ? (
+            <Input
+              autoFocus
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={handleTagKeyDown}
+              onBlur={() => {
+                if (!tagInput.trim()) setAddingTag(false)
+              }}
+              placeholder="Nome da tag"
+              className="h-7 w-28 rounded-full border-border bg-transparent px-3 text-sm shadow-none"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAddingTag(true)}
+              className="flex items-center gap-1 rounded-full border border-dashed border-border px-3 py-1 text-sm text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
+            >
+              <Plus className="h-3 w-3" />
+              Adicionar tag
+            </button>
+          )}
         </div>
       </div>
 
