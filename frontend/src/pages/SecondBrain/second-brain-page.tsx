@@ -1,4 +1,5 @@
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Card } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { QuickCreateMenu } from './components/quick-create-menu'
 import { SearchCommand } from './components/search-command'
@@ -75,7 +76,10 @@ export function SecondBrainPage() {
         </TabsList>
 
         <TabsContent value="notas">
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr_260px]">
+          <Card
+            size="sm"
+            className="grid grid-cols-1 divide-y divide-border p-0 lg:grid-cols-[260px_1fr_260px] lg:divide-x lg:divide-y-0"
+          >
             <NotesListPanel
               selectedNoteId={noteId ?? null}
               onSelect={selectNote}
@@ -85,7 +89,7 @@ export function SecondBrainPage() {
             />
             <NoteEditor note={selectedNote} onNavigate={selectNote} />
             <RelatedNotesPanel note={selectedNote} onNavigate={selectNote} />
-          </div>
+          </Card>
         </TabsContent>
 
         <TabsContent value="flashcards">

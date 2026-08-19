@@ -85,7 +85,7 @@ export function ReviewsPanel() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Card className="border border-border p-4">
+      <Card className="p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-4 text-sm">
             <span className="flex items-center gap-1.5 text-destructive">
@@ -116,7 +116,7 @@ export function ReviewsPanel() {
           <EmptyState icon="🎉" title="Nenhuma revisão pendente" />
         </Card>
       ) : (
-        <Card className="border border-border p-6">
+        <Card className="p-6">
           <div className="flex flex-col gap-6">
             {dueQueue.length === 0 && (
               <p className="text-sm text-muted-foreground">

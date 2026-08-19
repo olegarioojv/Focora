@@ -61,7 +61,7 @@ export function NoteEditor({ note, onNavigate }: NoteEditorProps) {
 
   if (!note) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center rounded-2xl border border-border">
+      <div className="flex min-h-[400px] items-center justify-center">
         <EmptyState
           icon="📝"
           title="Selecione ou crie uma nota"
@@ -125,98 +125,103 @@ export function NoteEditor({ note, onNavigate }: NoteEditorProps) {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border p-4">
-      <Input
-        value={title}
-        onChange={(e) => handleTitleChange(e.target.value)}
-        placeholder="Título da nota"
-        className="border-none px-0 font-heading text-lg font-medium shadow-none focus-visible:ring-0"
-      />
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Select
-          value={note.subjectId ?? '__none__'}
-          onValueChange={(value) =>
-            void updateNote(note.id, {
-              subjectId: value === '__none__' ? null : value,
-            })
-          }
-        >
-          <SelectTrigger size="sm">
-            <SelectValue placeholder="Sem matéria" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__">Sem matéria</SelectItem>
-            {subjects.map((subject) => (
-              <SelectItem key={subject.id} value={subject.id}>
-                {subject.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => void toggleFavorite(note.id)}
-          aria-label="Favoritar"
-        >
-          <Star
-            className={cn(
-              'h-4 w-4',
-              note.isFavorite && 'fill-current text-primary',
-            )}
+    <div className="flex flex-col gap-4 p-6">
+      <div className="flex flex-col gap-3">
+        <div className="flex items-start justify-between gap-2">
+          <Input
+            value={title}
+            onChange={(e) => handleTitleChange(e.target.value)}
+            placeholder="Título da nota"
+            className="h-auto border-none px-0 font-heading text-2xl font-semibold shadow-none focus-visible:ring-0"
           />
-        </Button>
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => void toggleArchived(note.id)}
-          aria-label="Arquivar"
-        >
-          <Archive
-            className={cn('h-4 w-4', note.isArchived && 'text-primary')}
-          />
-        </Button>
-
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => void removeNote(note.id)}
-          aria-label="Excluir nota"
-        >
-          <Trash2 className="h-4 w-4 text-destructive" />
-        </Button>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-1.5">
-        {tags.map((tag) => (
-          <Badge key={tag} variant="outline" className="gap-1">
-            {tag}
-            <button
+          <div className="flex shrink-0 items-center gap-0.5 pt-1">
+            <Button
               type="button"
-              onClick={() => commitTags(tags.filter((t) => t !== tag))}
-              aria-label={`Remover tag ${tag}`}
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => void toggleFavorite(note.id)}
+              aria-label="Favoritar"
             >
-              <X className="h-3 w-3" />
-            </button>
-          </Badge>
-        ))}
-        <Input
-          value={tagInput}
-          onChange={(e) => setTagInput(e.target.value)}
-          onKeyDown={handleTagKeyDown}
-          placeholder="Adicionar tag..."
-          className="h-6 w-32 border-none px-1 text-xs shadow-none focus-visible:ring-0"
-        />
+              <Star
+                className={cn(
+                  'h-4 w-4',
+                  note.isFavorite && 'fill-current text-primary',
+                )}
+              />
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => void toggleArchived(note.id)}
+              aria-label="Arquivar"
+            >
+              <Archive
+                className={cn('h-4 w-4', note.isArchived && 'text-primary')}
+              />
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => void removeNote(note.id)}
+              aria-label="Excluir nota"
+              className="text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <Select
+            value={note.subjectId ?? '__none__'}
+            onValueChange={(value) =>
+              void updateNote(note.id, {
+                subjectId: value === '__none__' ? null : value,
+              })
+            }
+          >
+            <SelectTrigger size="sm" className="h-7 border-none bg-muted px-2 shadow-none">
+              <SelectValue placeholder="Sem matéria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">Sem matéria</SelectItem>
+              {subjects.map((subject) => (
+                <SelectItem key={subject.id} value={subject.id}>
+                  {subject.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {tags.map((tag) => (
+            <Badge key={tag} variant="outline" className="gap-1">
+              {tag}
+              <button
+                type="button"
+                onClick={() => commitTags(tags.filter((t) => t !== tag))}
+                aria-label={`Remover tag ${tag}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+          <Input
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={handleTagKeyDown}
+            placeholder="+ tag"
+            className="h-7 w-20 border-none bg-transparent px-1.5 text-xs shadow-none focus-visible:ring-0"
+          />
+        </div>
       </div>
 
-      <Tabs defaultValue="editar">
-        <TabsList>
+      <Tabs defaultValue="editar" className="gap-4">
+        <TabsList className="self-start">
           <TabsTrigger value="editar">Editar</TabsTrigger>
           <TabsTrigger value="visualizar">Visualizar</TabsTrigger>
         </TabsList>
@@ -236,13 +241,13 @@ export function NoteEditor({ note, onNavigate }: NoteEditorProps) {
                 )
               }}
               placeholder="Escreva sua nota em markdown... use [[Título]] para linkar outra nota"
-              className="min-h-[500px] font-mono text-sm"
+              className="min-h-[520px] resize-none border-none px-0 text-[15px] leading-relaxed shadow-none focus-visible:ring-0"
             />
             {selection && (
               <Button
                 type="button"
                 size="sm"
-                className="absolute bottom-3 right-3"
+                className="absolute bottom-3 right-0"
                 onClick={handleCreateFlashcard}
               >
                 Criar Flashcard

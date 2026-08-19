@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import type { Note } from '@/types/note'
-import { Card } from '@/components/ui/card'
 import { useNotesStore } from '@/stores/notes-store'
 
 interface RelatedNotesPanelProps {
@@ -80,11 +79,11 @@ export function RelatedNotesPanel({ note, onNavigate }: RelatedNotesPanelProps) 
 
   if (!note || !sections) {
     return (
-      <Card className="border border-border p-4">
+      <div className="bg-muted/20 p-4">
         <p className="text-sm text-muted-foreground">
           Selecione uma nota para ver as relacionadas.
         </p>
-      </Card>
+      </div>
     )
   }
 
@@ -95,7 +94,10 @@ export function RelatedNotesPanel({ note, onNavigate }: RelatedNotesPanelProps) 
     sections.inbound.length > 0
 
   return (
-    <Card className="border border-border p-4">
+    <div className="bg-muted/20 p-4">
+      <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        Relacionadas
+      </p>
       <div className="flex flex-col gap-4">
         {!hasAny && (
           <p className="text-sm text-muted-foreground">
@@ -123,6 +125,6 @@ export function RelatedNotesPanel({ note, onNavigate }: RelatedNotesPanelProps) 
           onNavigate={onNavigate}
         />
       </div>
-    </Card>
+    </div>
   )
 }

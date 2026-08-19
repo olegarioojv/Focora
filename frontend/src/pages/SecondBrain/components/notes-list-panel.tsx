@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Plus, StickyNote } from 'lucide-react'
-import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -63,8 +62,8 @@ export function NotesListPanel({
   }, [notes, query, status, subjectFilter])
 
   return (
-    <Card className="border border-border p-4">
-      <div className="flex flex-col gap-3">
+    <div className="bg-muted/20">
+      <div className="flex flex-col gap-3 p-4">
         <Button type="button" className="w-full" onClick={onNewNote}>
           <Plus className="h-4 w-4" />
           Nova nota
@@ -165,6 +164,6 @@ export function NotesListPanel({
           </div>
         )}
       </div>
-    </Card>
+    </div>
   )
 }
