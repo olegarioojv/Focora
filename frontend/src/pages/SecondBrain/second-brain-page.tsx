@@ -1,24 +1,21 @@
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Card } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { QuickCreateMenu } from './components/quick-create-menu'
 import { SearchCommand } from './components/search-command'
+import { SectionNav, type SecondBrainSection } from './components/section-nav'
 import { NotesListPanel } from './components/notes-list-panel'
 import { NoteEditor } from './components/note-editor'
-import { RelatedNotesPanel } from './components/related-notes-panel'
 import { FlashcardsPanel } from './components/flashcards-panel'
 import { ReviewsPanel } from './components/reviews-panel'
 import { useNotesStore } from '@/stores/notes-store'
 import { useKeyboardShortcut } from '@/hooks/use-keyboard-shortcut'
 import { useState } from 'react'
 
-type SecondBrainTab = 'notas' | 'flashcards' | 'revisoes'
-
 export function SecondBrainPage() {
   const navigate = useNavigate()
   const { noteId } = useParams<{ noteId?: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [activeTab, setActiveTab] = useState<SecondBrainTab>('notas')
+  const [activeSection, setActiveSection] = useState<SecondBrainSection>('notas')
   const [searchOpen, setSearchOpen] = useState(false)
 
   const notes = useNotesStore((state) => state.notes)
@@ -40,7 +37,7 @@ export function SecondBrainPage() {
 
   async function handleNewNote() {
     const note = await addNote({ title: 'Nova nota', content: '' })
-    setActiveTab('notas')
+    setActiveSection('notas')
     selectNote(note.id)
   }
 
@@ -60,26 +57,19 @@ export function SecondBrainPage() {
         </div>
         <QuickCreateMenu
           onNewNote={() => void handleNewNote()}
-          onNewFlashcard={() => setActiveTab('flashcards')}
-          onNewReview={() => setActiveTab('revisoes')}
+          onNewFlashcard={() => setActiveSection('flashcards')}
+          onNewReview={() => setActiveSection('revisoes')}
         />
       </div>
 
-      <Tabs
-        value={activeTab}
-        onValueChange={(value) => setActiveTab(value as SecondBrainTab)}
+      <Card
+        size="sm"
+        className="grid grid-cols-1 divide-y divide-border p-0 lg:h-[calc(100vh-260px)] lg:min-h-[560px] lg:grid-cols-[260px_1fr] lg:divide-x lg:divide-y-0 lg:overflow-hidden"
       >
-        <TabsList>
-          <TabsTrigger value="notas">Notas</TabsTrigger>
-          <TabsTrigger value="flashcards">Flashcards</TabsTrigger>
-          <TabsTrigger value="revisoes">Revisões</TabsTrigger>
-        </TabsList>
+        <div className="flex h-full flex-col gap-4 bg-muted/20 p-4 lg:overflow-y-auto">
+          <SectionNav active={activeSection} onChange={setActiveSection} />
 
-        <TabsContent value="notas">
-          <Card
-            size="sm"
-            className="grid grid-cols-1 divide-y divide-border p-0 lg:h-[calc(100vh-260px)] lg:min-h-[560px] lg:grid-cols-[260px_1fr_260px] lg:divide-x lg:divide-y-0 lg:overflow-hidden"
-          >
+          {activeSection === 'notas' && (
             <NotesListPanel
               selectedNoteId={noteId ?? null}
               onSelect={selectNote}
@@ -87,25 +77,29 @@ export function SecondBrainPage() {
               onSubjectFilterChange={setSubjectFilter}
               onNewNote={() => void handleNewNote()}
             />
-            <NoteEditor note={selectedNote} onNavigate={selectNote} />
-            <RelatedNotesPanel note={selectedNote} onNavigate={selectNote} />
-          </Card>
-        </TabsContent>
+          )}
+        </div>
 
-        <TabsContent value="flashcards">
-          <FlashcardsPanel subjectFilter={subjectFilter} />
-        </TabsContent>
-
-        <TabsContent value="revisoes">
-          <ReviewsPanel />
-        </TabsContent>
-      </Tabs>
+        {activeSection === 'notas' && (
+          <NoteEditor note={selectedNote} onNavigate={selectNote} />
+        )}
+        {activeSection === 'flashcards' && (
+          <div className="h-full p-6 lg:overflow-y-auto">
+            <FlashcardsPanel subjectFilter={subjectFilter} />
+          </div>
+        )}
+        {activeSection === 'revisoes' && (
+          <div className="h-full p-6 lg:overflow-y-auto">
+            <ReviewsPanel />
+          </div>
+        )}
+      </Card>
 
       <SearchCommand
         open={searchOpen}
         onOpenChange={setSearchOpen}
         onNavigateToNote={(id) => {
-          setActiveTab('notas')
+          setActiveSection('notas')
           selectNote(id)
         }}
       />

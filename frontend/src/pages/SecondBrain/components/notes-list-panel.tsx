@@ -80,7 +80,7 @@ export function NotesListPanel({
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 bg-muted/20 p-4 lg:overflow-y-auto">
+    <div className="flex flex-col gap-4">
       <Button
         type="button"
         className="w-full rounded-full font-medium"
