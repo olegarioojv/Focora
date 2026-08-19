@@ -100,7 +100,7 @@ export function RelatedNotesPanel({ note, onNavigate }: RelatedNotesPanelProps) 
 
   if (!note || !sections) {
     return (
-      <div className="bg-muted/20 p-4">
+      <div className="h-full bg-muted/20 p-4">
         <p className="text-sm text-muted-foreground">
           Selecione uma nota para ver as relacionadas.
         </p>
@@ -124,7 +124,7 @@ export function RelatedNotesPanel({ note, onNavigate }: RelatedNotesPanelProps) 
   const authorInitial = (profileName || 'Você').charAt(0).toUpperCase()
 
   return (
-    <div className="bg-muted/20 p-4">
+    <div className="h-full bg-muted/20 p-4 lg:overflow-y-auto">
       <div className="mb-5 flex flex-col gap-3">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Informações

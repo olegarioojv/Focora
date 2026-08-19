@@ -78,7 +78,7 @@ export function SecondBrainPage() {
         <TabsContent value="notas">
           <Card
             size="sm"
-            className="grid grid-cols-1 divide-y divide-border p-0 lg:grid-cols-[260px_1fr_260px] lg:divide-x lg:divide-y-0"
+            className="grid grid-cols-1 divide-y divide-border p-0 lg:h-[calc(100vh-260px)] lg:min-h-[560px] lg:grid-cols-[260px_1fr_260px] lg:divide-x lg:divide-y-0 lg:overflow-hidden"
           >
             <NotesListPanel
               selectedNoteId={noteId ?? null}

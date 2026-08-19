@@ -90,7 +90,7 @@ export function NoteEditor({ note, onNavigate }: NoteEditorProps) {
 
   if (!note) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
+      <div className="flex h-full min-h-[400px] items-center justify-center">
         <EmptyState
           icon="📝"
           title="Selecione ou crie uma nota"
@@ -183,10 +183,18 @@ export function NoteEditor({ note, onNavigate }: NoteEditorProps) {
     const value = el.value
     const start = el.selectionStart
     const end = el.selectionEnd
-    const selected = value.slice(start, end) || 'texto'
+    const selected = value.slice(start, end)
     const next = value.slice(0, start) + before + selected + after + value.slice(end)
     handleContentChange(next)
-    focusAndSelect(start + before.length, start + before.length + selected.length)
+    // No selection: drop the cursor between the marks so the user types
+    // straight into them, instead of splicing a placeholder word into
+    // whatever the cursor happened to be touching (that silently corrupted
+    // real content the first time this shipped).
+    if (selected) {
+      focusAndSelect(start + before.length, start + before.length + selected.length)
+    } else {
+      focusAndSelect(start + before.length, start + before.length)
+    }
   }
 
   function prefixLines(prefix: string) {
@@ -234,7 +242,7 @@ export function NoteEditor({ note, onNavigate }: NoteEditorProps) {
   }
 
   return (
-    <div className="flex flex-col gap-4 p-6">
+    <div className="flex h-full flex-col gap-4 p-6 lg:overflow-y-auto">
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
           <span className="truncate">
