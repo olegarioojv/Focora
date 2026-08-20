@@ -19,7 +19,14 @@ export class FlashcardsService {
     });
   }
 
-  create(userId: string, dto: CreateFlashcardDto) {
+  async create(userId: string, dto: CreateFlashcardDto) {
+    if (dto.noteId) {
+      await this.assertNoteOwnership(userId, dto.noteId);
+    }
+    if (dto.subjectId) {
+      await this.assertSubjectOwnership(userId, dto.subjectId);
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const today = todayDateString();
 
@@ -47,6 +54,12 @@ export class FlashcardsService {
 
   async update(userId: string, id: string, dto: UpdateFlashcardDto) {
     await this.assertOwnership(userId, id);
+    if (dto.noteId) {
+      await this.assertNoteOwnership(userId, dto.noteId);
+    }
+    if (dto.subjectId) {
+      await this.assertSubjectOwnership(userId, dto.subjectId);
+    }
 
     return this.prisma.$transaction(async (tx) => {
       const data: {
@@ -105,5 +118,21 @@ export class FlashcardsService {
       throw new NotFoundException('Flashcard não encontrado');
     }
     return card;
+  }
+
+  private async assertNoteOwnership(userId: string, noteId: string) {
+    const note = await this.prisma.note.findUnique({ where: { id: noteId } });
+    if (!note || note.userId !== userId) {
+      throw new NotFoundException('Nota não encontrada');
+    }
+  }
+
+  private async assertSubjectOwnership(userId: string, subjectId: string) {
+    const subject = await this.prisma.subject.findUnique({
+      where: { id: subjectId },
+    });
+    if (!subject || subject.userId !== userId) {
+      throw new NotFoundException('Matéria não encontrada');
+    }
   }
 }

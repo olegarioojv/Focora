@@ -27,7 +27,11 @@ export class NotesService {
     });
   }
 
-  create(userId: string, dto: CreateNoteDto) {
+  async create(userId: string, dto: CreateNoteDto) {
+    if (dto.subjectId) {
+      await this.assertSubjectOwnership(userId, dto.subjectId);
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const note = await tx.note.create({
         data: {
@@ -52,6 +56,9 @@ export class NotesService {
 
   async update(userId: string, id: string, dto: UpdateNoteDto) {
     await this.assertOwnership(userId, id);
+    if (dto.subjectId) {
+      await this.assertSubjectOwnership(userId, dto.subjectId);
+    }
 
     return this.prisma.$transaction(async (tx) => {
       await tx.note.update({
@@ -129,5 +136,14 @@ export class NotesService {
       throw new NotFoundException('Nota não encontrada');
     }
     return note;
+  }
+
+  private async assertSubjectOwnership(userId: string, subjectId: string) {
+    const subject = await this.prisma.subject.findUnique({
+      where: { id: subjectId },
+    });
+    if (!subject || subject.userId !== userId) {
+      throw new NotFoundException('Matéria não encontrada');
+    }
   }
 }
