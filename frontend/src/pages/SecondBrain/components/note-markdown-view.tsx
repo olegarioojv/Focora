@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useNotesStore, resolveNoteLinks } from '@/stores/notes-store'
+import { remarkInlineMarks } from '@/lib/remark-inline-marks'
 
 interface NoteMarkdownViewProps {
   content: string
@@ -83,6 +84,8 @@ export function NoteMarkdownView({ content, onNavigate }: NoteMarkdownViewProps)
         '[&_li.task-list-item]:flex [&_li.task-list-item]:items-center [&_li.task-list-item]:gap-2',
         '[&_input[type=checkbox]]:h-4 [&_input[type=checkbox]]:w-4 [&_input[type=checkbox]]:accent-primary',
         '[&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-xs',
+        '[&_mark]:rounded [&_mark]:bg-yellow-300/80 [&_mark]:px-0.5 [&_mark]:text-neutral-900',
+        '[&_u]:underline [&_u]:decoration-2 [&_u]:underline-offset-2',
         '[&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-muted [&_pre]:p-3',
         '[&_blockquote]:my-4 [&_blockquote]:rounded-lg [&_blockquote]:border-l-2 [&_blockquote]:border-primary [&_blockquote]:bg-primary/5 [&_blockquote]:px-4 [&_blockquote]:py-3 [&_blockquote]:text-foreground [&_blockquote_p]:mb-0',
         '[&_table]:my-4 [&_table]:w-full [&_table]:border-collapse [&_table]:overflow-hidden [&_table]:rounded-lg [&_table]:border [&_table]:border-border [&_table]:text-sm',
@@ -91,7 +94,7 @@ export function NoteMarkdownView({ content, onNavigate }: NoteMarkdownViewProps)
         'text-sm text-foreground',
       ].join(' ')}
     >
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+      <ReactMarkdown remarkPlugins={[remarkGfm, remarkInlineMarks]} components={components}>
         {processedContent}
       </ReactMarkdown>
     </div>

@@ -9,6 +9,8 @@ import {
   Bold,
   Italic,
   Strikethrough,
+  Highlighter,
+  Underline,
   List,
   ListOrdered,
   ListChecks,
@@ -16,6 +18,8 @@ import {
   Link2,
   Code,
   Table as TableIcon,
+  Minus,
+  Smile,
   Plus,
 } from 'lucide-react'
 import type { Note } from '@/types/note'
@@ -32,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { useNotesStore } from '@/stores/notes-store'
 import { useSubjectsStore } from '@/stores/subjects-store'
@@ -51,6 +56,16 @@ const HEADING_LEVELS = [
   { value: '3', label: 'Título 3' },
 ]
 
+// Curated grid, not the full Unicode set — keeps the popover to one screen
+// and covers the emojis people actually reach for while taking notes.
+const COMMON_EMOJIS = [
+  '😀', '😄', '😅', '😂', '🙂', '😉', '😍', '🤔', '😴', '😢',
+  '😮', '😎', '🙌', '👍', '👎', '👏', '🙏', '💪', '✌️', '🤝',
+  '❤️', '🔥', '⭐', '✨', '🎉', '✅', '❌', '⚠️', '❓', '❗',
+  '💡', '📌', '📝', '📚', '🎯', '🚀', '⏰', '📅', '🔗', '🔒',
+  '💰', '📈', '📉', '🧠', '💻', '☕', '🎓', '🏆', '🗂️', '📎',
+]
+
 type SaveState = 'saved' | 'pending' | 'saving'
 
 export function NoteEditor({ note, onNavigate }: NoteEditorProps) {
@@ -68,7 +83,9 @@ export function NoteEditor({ note, onNavigate }: NoteEditorProps) {
   const [selection, setSelection] = useState('')
   const [mode, setMode] = useState<'editar' | 'visualizar'>('editar')
   const [saveState, setSaveState] = useState<SaveState>('saved')
+  const [emojiOpen, setEmojiOpen] = useState(false)
 
+  const skipTagBlurCommit = useRef(false)
   const titleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const contentTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -137,19 +154,37 @@ export function NoteEditor({ note, onNavigate }: NoteEditorProps) {
     void persist({ tags: nextTags })
   }
 
+  function addTagFromInput() {
+    const value = tagInput.trim()
+    if (value && !tags.some((t) => t.toLowerCase() === value.toLowerCase())) {
+      commitTags([...tags, value])
+    }
+    setTagInput('')
+    setAddingTag(false)
+  }
+
   function handleTagKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault()
-      const value = tagInput.trim()
-      if (value && !tags.includes(value)) {
-        commitTags([...tags, value])
-      }
-      setTagInput('')
-      setAddingTag(false)
+      addTagFromInput()
     } else if (e.key === 'Escape') {
+      // Removing the input on this keystroke can fire a native blur as it
+      // unmounts, with the pre-Escape text baked into that blur handler's
+      // stale closure. Suppress that one blur, then release the guard on
+      // the next tick regardless of whether a blur actually arrived — it
+      // must never linger to swallow a *later*, real blur-commit.
+      skipTagBlurCommit.current = true
       setTagInput('')
       setAddingTag(false)
+      setTimeout(() => {
+        skipTagBlurCommit.current = false
+      }, 0)
     }
+  }
+
+  function handleTagBlur() {
+    if (skipTagBlurCommit.current) return
+    addTagFromInput()
   }
 
   function handleCreateFlashcard() {
@@ -358,9 +393,7 @@ export function NoteEditor({ note, onNavigate }: NoteEditorProps) {
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={handleTagKeyDown}
-              onBlur={() => {
-                if (!tagInput.trim()) setAddingTag(false)
-              }}
+              onBlur={handleTagBlur}
               placeholder="Nome da tag"
               className="h-7 w-28 rounded-full border-border bg-transparent px-3 text-sm shadow-none"
             />
@@ -410,6 +443,12 @@ export function NoteEditor({ note, onNavigate }: NoteEditorProps) {
             <ToolbarButton label="Tachado" onClick={() => wrapSelection('~~')}>
               <Strikethrough className="h-4 w-4" />
             </ToolbarButton>
+            <ToolbarButton label="Destacar" onClick={() => wrapSelection('==')}>
+              <Highlighter className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton label="Sublinhado" onClick={() => wrapSelection('++')}>
+              <Underline className="h-4 w-4" />
+            </ToolbarButton>
             <ToolbarDivider />
             <ToolbarButton label="Lista" onClick={() => prefixLines('- ')}>
               <List className="h-4 w-4" />
@@ -440,6 +479,42 @@ export function NoteEditor({ note, onNavigate }: NoteEditorProps) {
             >
               <TableIcon className="h-4 w-4" />
             </ToolbarButton>
+            <ToolbarButton label="Divisor" onClick={() => insertAtCursor('\n\n---\n\n')}>
+              <Minus className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarDivider />
+            <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Emoji"
+                  title="Emoji"
+                  className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+                >
+                  <Smile className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64" align="start">
+                <div className="grid grid-cols-8 gap-1">
+                  {COMMON_EMOJIS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => {
+                        insertAtCursor(emoji)
+                        setEmojiOpen(false)
+                      }}
+                      className="flex h-8 w-8 items-center justify-center rounded-md text-lg transition-colors hover:bg-muted"
+                      aria-label={`Inserir ${emoji}`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         )}
 
