@@ -1,4 +1,5 @@
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { QuickCreateMenu } from './components/quick-create-menu'
 import { SearchCommand } from './components/search-command'
@@ -46,6 +47,14 @@ export function SecondBrainPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <Link
+        to="/app"
+        className="flex w-fit items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Início
+      </Link>
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-foreground">

@@ -2,7 +2,6 @@ import { CurrentStreakCard } from './current-streak-card'
 import { PomodoroCard } from './pomodoro-card'
 import { DaySummaryCard } from './day-summary-card'
 import { TodayPlanCard } from './today-plan-card'
-import { SecondBrainCard } from './second-brain-card'
 import { MySubjectsCard } from './my-subjects-card'
 
 export function DashboardSidebar() {
@@ -12,7 +11,6 @@ export function DashboardSidebar() {
       <PomodoroCard />
       <DaySummaryCard />
       <TodayPlanCard />
-      <SecondBrainCard />
       <MySubjectsCard />
     </aside>
   )

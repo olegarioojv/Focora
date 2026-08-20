@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Brain, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
 import {
   DndContext,
   DragOverlay,
@@ -138,17 +139,27 @@ export function WeeklySchedulePreview() {
         <h3 className="font-heading text-base font-medium">
           Cronograma de Estudos
         </h3>
-        <IntelligentPlanModal
-          trigger={
-            <button
-              type="button"
-              aria-label="Plano Inteligente"
-              className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </button>
-          }
-        />
+        <div className="flex items-center gap-1">
+          <Link
+            to="/app/brain"
+            title="Segundo Cérebro"
+            aria-label="Abrir Segundo Cérebro"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <Brain className="h-4 w-4" />
+          </Link>
+          <IntelligentPlanModal
+            trigger={
+              <button
+                type="button"
+                aria-label="Plano Inteligente"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
+            }
+          />
+        </div>
       </div>
 
       {!schedule ? (
