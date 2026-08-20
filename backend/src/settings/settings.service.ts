@@ -2,30 +2,15 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
+import { dateStringInTimezone, todayDateString } from '../common/utils/date';
 
 const XP_PER_POMODORO = 10;
 const XP_PER_TASK = 15;
 const XP_PER_REVIEW = 20;
 
-// App's target audience is Brazil — computing "today"/"yesterday" in raw
-// UTC (as this used to) shifts every evening study session (~21h-23h59
-// local) onto the next UTC day, silently breaking the streak and the
-// 100-day calendar for anyone studying at night.
-const APP_TIMEZONE = 'America/Sao_Paulo';
 // A minimum gap between two pomodoro awards, closing the "curl this
 // endpoint in a loop" XP-farming hole — see awardPomodoro below.
 const MIN_SECONDS_BETWEEN_POMODOROS = 30;
-
-function dateStringInTimezone(date: Date) {
-  // en-CA formats as yyyy-mm-dd, which is what the rest of the app expects.
-  return new Intl.DateTimeFormat('en-CA', { timeZone: APP_TIMEZONE }).format(
-    date,
-  );
-}
-
-function todayDateString() {
-  return dateStringInTimezone(new Date());
-}
 
 function yesterdayDateString() {
   // Brazil has not observed DST since 2019, so a flat 24h subtraction is

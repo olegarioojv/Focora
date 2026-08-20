@@ -25,6 +25,15 @@ export interface ReorderChange {
   orderedIds: string[]
 }
 
+export interface DailySessionEntry {
+  id: string
+  subjectId: string
+  subjectName: string
+  category: DayPlanCategory
+  durationMinutes: number
+  completedAt: string
+}
+
 export const dayPlanApi = {
   listConfigs: () => apiGet<DayPlanConfig[]>('/day-plan/configs'),
   upsertConfig: (
@@ -38,6 +47,8 @@ export const dayPlanApi = {
     ),
   listSessions: (weekStart: string) =>
     apiGet<StudySession[]>(`/day-plan/sessions?weekStart=${weekStart}`),
+  listSessionsByDate: (date: string) =>
+    apiGet<DailySessionEntry[]>(`/day-plan/sessions/by-date?date=${date}`),
   sync: (weekStart: string) =>
     apiPost<StudySession[]>('/day-plan/sync', { weekStart }),
   createSession: (input: CreateSessionInput) =>

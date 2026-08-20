@@ -14,6 +14,8 @@ import { DayPlanModule } from './day-plan/day-plan.module';
 import { SettingsModule } from './settings/settings.module';
 import { AdminModule } from './admin/admin.module';
 import { GroupsModule } from './groups/groups.module';
+import { NotesModule } from './notes/notes.module';
+import { FlashcardsModule } from './flashcards/flashcards.module';
 import { ErrorLogFilter } from './common/filters/error-log.filter';
 
 @Module({
@@ -33,6 +35,8 @@ import { ErrorLogFilter } from './common/filters/error-log.filter';
     SettingsModule,
     AdminModule,
     GroupsModule,
+    NotesModule,
+    FlashcardsModule,
   ],
   controllers: [AppController],
   providers: [

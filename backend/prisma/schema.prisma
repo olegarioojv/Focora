@@ -41,6 +41,9 @@ model User {
   ownedGroups      Group[]         @relation("GroupOwner")
   groupMemberships GroupMember[]
   groupMessages    GroupMessage[]
+  notes            Note[]
+  tags             Tag[]
+  flashcards       Flashcard[]
 
   @@index([isGuest, guestExpiresAt])
   @@map("users")
@@ -301,4 +304,109 @@ model Alert {
 
   @@index([type, resolvedAt])
   @@map("alerts")
+}
+
+model Note {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String
+  content    String   @default("")
+  // Bare id, no FK — same convention as Review/DayPlanEntry/StudySession's
+  // subjectId, so a subject can be deleted without an FK constraint error;
+  // SubjectsService.remove() nulls this out manually instead of cascading,
+  // since notes are durable knowledge that should outlive the subject tag.
+  subjectId  String?
+  isFavorite Boolean  @default(false)
+  isArchived Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tags          NoteTag[]
+  outboundLinks NoteLink[]  @relation("SourceNote")
+  inboundLinks  NoteLink[]  @relation("TargetNote")
+  flashcards    Flashcard[]
+
+  @@index([userId])
+  @@index([userId, subjectId])
+  @@map("notes")
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  createdAt DateTime @default(now())
+
+  notes      NoteTag[]
+  flashcards FlashcardTag[]
+
+  @@unique([userId, name])
+  @@map("tags")
+}
+
+model NoteTag {
+  noteId String
+  note   Note   @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  tagId  String
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([noteId, tagId])
+  @@index([tagId])
+  @@map("note_tags")
+}
+
+model NoteLink {
+  id           String   @id @default(uuid())
+  sourceNoteId String
+  sourceNote   Note     @relation("SourceNote", fields: [sourceNoteId], references: [id], onDelete: Cascade)
+  targetNoteId String
+  targetNote   Note     @relation("TargetNote", fields: [targetNoteId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  @@unique([sourceNoteId, targetNoteId])
+  @@index([targetNoteId])
+  @@map("note_links")
+}
+
+model Flashcard {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  front  String
+  back   String
+  // Real FK (unlike subjectId below) — Note and Flashcard belong to the same
+  // feature/transaction boundary, so there's no cross-module cleanup problem
+  // that would justify the bare-id pattern used for Subject references.
+  noteId String?
+  note   Note?   @relation(fields: [noteId], references: [id], onDelete: SetNull)
+  // Bare id, no FK — same convention/rationale as Note.subjectId.
+  subjectId      String?
+  easeFactor     Float     @default(2.5)
+  intervalDays   Int       @default(0)
+  repetitions    Int       @default(0)
+  // YYYY-MM-DD in APP_TIMEZONE, same convention as Review.dueDate.
+  nextReviewDate String
+  lastReviewedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  tags FlashcardTag[]
+
+  @@index([userId])
+  @@index([userId, nextReviewDate])
+  @@index([userId, subjectId])
+  @@map("flashcards")
+}
+
+model FlashcardTag {
+  flashcardId String
+  flashcard   Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
+  tagId       String
+  tag         Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([flashcardId, tagId])
+  @@index([tagId])
+  @@map("flashcard_tags")
 }
