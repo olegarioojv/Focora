@@ -10,7 +10,7 @@ services:
     plan: free
     rootDir: backend
     buildCommand: npm install --include=dev && npx prisma generate && npm run build
-    startCommand: npm run start:prod
+    startCommand: ls -la dist 2>&1; node dist/main.js
     healthCheckPath: /
     envVars:
       - key: NODE_ENV
