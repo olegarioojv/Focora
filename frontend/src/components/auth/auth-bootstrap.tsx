@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { authApi } from '@/services/auth-api'
 import { usersApi } from '@/services/users-api'
@@ -12,6 +13,13 @@ import { EmptyState } from '@/components/ui/empty-state'
 
 type BootstrapStatus = 'loading' | 'ready' | 'error'
 
+// The API sleeps after inactivity on Render's free tier and takes 30-60s
+// to wake back up on the next request — long enough that the plain
+// skeleton below reads as "stuck", not "loading". If bootstrap is still
+// running past this delay, swap in an explicit "server is waking up"
+// message so a slow-but-working cold start doesn't look like a hang.
+const COLD_START_HINT_DELAY_MS = 4000
+
 /** On app boot: the auth cookie (if any) is sent automatically, so ask the
  * server who we are first. A 401 means there's no valid session yet (first
  * visit, or an expired/cleared cookie) — provision a fresh guest session in
@@ -22,9 +30,18 @@ export function AuthBootstrap({ children }: { children: ReactNode }) {
   const setUser = useAuthStore((state) => state.setUser)
   const showCookieNotice = useCookieNoticeStore((state) => state.show)
   const [status, setStatus] = useState<BootstrapStatus>('loading')
+  const [showColdStartHint, setShowColdStartHint] = useState(false)
+  const coldStartTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  )
 
   async function bootstrap() {
     setStatus('loading')
+    setShowColdStartHint(false)
+    coldStartTimer.current = setTimeout(
+      () => setShowColdStartHint(true),
+      COLD_START_HINT_DELAY_MS,
+    )
     try {
       try {
         const user = await usersApi.me()
@@ -58,6 +75,8 @@ export function AuthBootstrap({ children }: { children: ReactNode }) {
       const handledElsewhere =
         error instanceof ApiError && (error.status === 401 || error.status === 403)
       setStatus(handledElsewhere ? 'ready' : 'error')
+    } finally {
+      clearTimeout(coldStartTimer.current)
     }
   }
 
@@ -77,7 +96,20 @@ export function AuthBootstrap({ children }: { children: ReactNode }) {
 
   if (status === 'loading') {
     return (
-      <div className="flex min-h-svh flex-col bg-background">
+      <div className="relative flex min-h-svh flex-col bg-background">
+        {showColdStartHint && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-background/90 px-6 text-center backdrop-blur-sm">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm font-medium text-foreground">
+              Iniciando o servidor...
+            </p>
+            <p className="max-w-xs text-xs text-muted-foreground">
+              O Focora está hospedado num plano gratuito que "dorme" após um
+              tempo sem uso. Isso pode levar até 1 minuto na primeira
+              requisição — já já carrega.
+            </p>
+          </div>
+        )}
         <div className="flex h-16 shrink-0 items-center justify-end border-b border-border px-6">
           <div className="flex items-center gap-3">
             <Skeleton className="h-9 w-9 rounded-full" />
