@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Brain, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
 import {
   DndContext,
   DragOverlay,
@@ -140,14 +139,6 @@ export function WeeklySchedulePreview() {
           Cronograma de Estudos
         </h3>
         <div className="flex items-center gap-1">
-          <Link
-            to="/app/brain"
-            title="Segundo Cérebro"
-            aria-label="Abrir Segundo Cérebro"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
-          >
-            <Brain className="h-4 w-4" />
-          </Link>
           <IntelligentPlanModal
             trigger={
               <button
